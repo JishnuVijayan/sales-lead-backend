@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proposal {{proposalNumber}}</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #2563eb;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .company-name {
+            font-size: 28px;
+            font-weight: bold;
+            color: #2563eb;
+            margin-bottom: 10px;
+        }
+
+        .proposal-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 20px;
+        }
+
+        .info-section {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+
+        .info-block {
+            flex: 1;
+        }
+
+        .info-block h3 {
+            font-size: 16px;
+            font-weight: bold;
+            color: #374151;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 4px;
+        }
+
+        .info-block p {
+            margin: 4px 0;
+            font-size: 14px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        th, td {
+            border: 1px solid #e5e7eb;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f9fafb;
+            font-weight: bold;
+            color: #374151;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .totals-section {
+            margin-top: 20px;
+            border-top: 2px solid #e5e7eb;
+            padding-top: 20px;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 8px;
+        }
+
+        .total-label {
+            font-weight: bold;
+            min-width: 120px;
+        }
+
+        .total-amount {
+            font-weight: bold;
+            color: #2563eb;
+        }
+
+        .grand-total {
+            font-size: 18px;
+            color: #dc2626;
+        }
+
+        .terms-section {
+            margin-top: 40px;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 20px;
+        }
+
+        .terms-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #374151;
+            margin-bottom: 10px;
+        }
+
+        .terms-content {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #6b7280;
+        }
+
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 12px;
+            color: #9ca3af;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="company-name">Your Company Name</div>
+        <div class="proposal-title">Proposal #{{proposalNumber}}</div>
+    </div>
+
+    <div class="info-section">
+        <div class="info-block">
+            <h3>Proposal Details</h3>
+            <p><strong>Proposal Number:</strong> {{proposalNumber}}</p>
+            <p><strong>Date:</strong> {{createdDate}}</p>
+            {{#if validUntil}}
+            <p><strong>Valid Until:</strong> {{validUntil}}</p>
+            {{/if}}
+        </div>
+
+        <div class="info-block">
+            <h3>Client Information</h3>
+            <p><strong>Name:</strong> {{lead.name}}</p>
+            {{#if lead.organization}}
+            <p><strong>Organization:</strong> {{lead.organization}}</p>
+            {{/if}}
+            <p><strong>Email:</strong> {{lead.email}}</p>
+            <p><strong>Phone:</strong> {{lead.phone}}</p>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th>Description</th>
+                <th>Qty</th>
+                <th>Unit Price</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#each items}}
+            <tr>
+                <td>{{itemName}}</td>
+                <td>{{description}}</td>
+                <td class="text-right">{{quantity}}</td>
+                <td class="text-right">${{unitPrice}}</td>
+                <td class="text-right">${{totalPrice}}</td>
+            </tr>
+            {{/each}}
+        </tbody>
+    </table>
+
+    <div class="totals-section">
+        <div class="total-row">
+            <span class="total-label">Subtotal:</span>
+            <span class="total-amount">${{subtotal}}</span>
+        </div>
+
+        {{#if discountPercent}}
+        <div class="total-row">
+            <span class="total-label">Discount ({{discountPercent}}%):</span>
+            <span class="total-amount">-${{discountAmount}}</span>
+        </div>
+        {{/if}}
+
+        {{#if taxPercent}}
+        <div class="total-row">
+            <span class="total-label">Tax ({{taxPercent}}%):</span>
+            <span class="total-amount">${{taxAmount}}</span>
+        </div>
+        {{/if}}
+
+        <div class="total-row grand-total">
+            <span class="total-label">Total Amount:</span>
+            <span class="total-amount">${{totalAmount}}</span>
+        </div>
+    </div>
+
+    {{#if termsAndConditions}}
+    <div class="terms-section">
+        <div class="terms-title">Terms and Conditions</div>
+        <div class="terms-content">{{termsAndConditions}}</div>
+    </div>
+    {{/if}}
+
+    <div class="footer">
+        <p>This proposal is valid for 30 days from the date of issuance unless otherwise stated.</p>
+        <p>Thank you for considering our services.</p>
+    </div>
+</body>
+</html>
