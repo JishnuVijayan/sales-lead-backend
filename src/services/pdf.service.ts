@@ -30,7 +30,7 @@ export class PdfService implements OnModuleInit, OnModuleDestroy {
     }
 
     // Read HTML template
-    const templatePath = path.join(__dirname, '..', '..', 'templates', 'proposal.html');
+    const templatePath = path.join(__dirname, '..', '..', '..', 'src', 'templates', 'proposal.html');
     const templateSource = fs.readFileSync(templatePath, 'utf8');
     const template = handlebars.compile(templateSource);
 
@@ -42,14 +42,16 @@ export class PdfService implements OnModuleInit, OnModuleDestroy {
       validUntil: proposal.validUntil ? new Date(proposal.validUntil).toLocaleDateString() : null,
       items: proposal.items.map(item => ({
         ...item,
-        totalPrice: (item.quantity * item.unitPrice).toFixed(2),
+        quantity: parseFloat(item.quantity.toString()),
+        unitPrice: parseFloat(item.unitPrice.toString()),
+        totalPrice: (parseFloat(item.quantity.toString()) * parseFloat(item.unitPrice.toString())).toFixed(2),
       })),
-      subtotal: proposal.subtotal.toFixed(2),
-      taxAmount: proposal.taxAmount.toFixed(2),
-      discountAmount: proposal.discountAmount.toFixed(2),
-      totalAmount: proposal.totalAmount.toFixed(2),
-      taxPercent: proposal.taxPercent,
-      discountPercent: proposal.discountPercent,
+      subtotal: parseFloat(proposal.subtotal.toString()).toFixed(2),
+      taxAmount: parseFloat(proposal.taxAmount.toString()).toFixed(2),
+      discountAmount: parseFloat(proposal.discountAmount.toString()).toFixed(2),
+      totalAmount: parseFloat(proposal.totalAmount.toString()).toFixed(2),
+      taxPercent: parseFloat(proposal.taxPercent.toString()),
+      discountPercent: parseFloat(proposal.discountPercent.toString()),
       termsAndConditions: proposal.termsAndConditions,
     };
 

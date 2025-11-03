@@ -16,10 +16,10 @@ export class DocumentsService {
   async create(createDocumentDto: CreateDocumentDto, file: Express.Multer.File, userId: string): Promise<Document> {
     const document = this.documentsRepository.create({
       ...createDocumentDto,
-      fileName: file.originalname,
+      fileName: file.originalname || 'unnamed-file',
       filePath: file.path,
-      fileSize: file.size,
-      mimeType: file.mimetype,
+      fileSize: file.size || 0,
+      mimeType: file.mimetype || 'application/octet-stream',
       uploadedById: userId,
     });
 

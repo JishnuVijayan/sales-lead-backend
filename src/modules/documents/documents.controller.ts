@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile, Query, HttpCode, HttpStatus, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile, Query, HttpCode, HttpStatus, UseGuards, Request, UsePipes, ValidationPipe } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
@@ -12,13 +12,14 @@ export class DocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
 
   @Post('upload')
+  @UsePipes(new ValidationPipe({ whitelist: false, forbidNonWhitelisted: false }))
   @UseInterceptors(FileInterceptor('file', {
     storage: diskStorage({
       destination: './uploads',
       filename: (req, file, callback) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const ext = extname(file.originalname);
-        callback(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
+        const ext = file.originalname ? extname(file.originalname) : '';
+        callback(null, `file-${uniqueSuffix}${ext}`);
       },
     }),
     limits: {
@@ -28,10 +29,19 @@ export class DocumentsController {
   @HttpCode(HttpStatus.CREATED)
   async uploadFile(
     @UploadedFile() file: Express.Multer.File,
-    @Body() createDocumentDto: CreateDocumentDto,
+    @Body() body: { leadId: string; description?: string; documentType?: string },
     @Request() req: any,
   ) {
+    if (!file) {
+      throw new Error('No file uploaded');
+    }
+
     const userId = req.user.id;
+    const createDocumentDto: CreateDocumentDto = {
+      leadId: body.leadId,
+      description: body.description || undefined,
+      documentType: body.documentType as any || undefined,
+    };
     return this.documentsService.create(createDocumentDto, file, userId);
   }
 

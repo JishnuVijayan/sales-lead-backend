@@ -181,6 +181,14 @@ export class QualifyLeadDto {
   @IsNumber()
   @IsOptional()
   estimatedBudget?: number;
+
+  @IsString()
+  @IsOptional()
+  timeline?: string;
+
+  @IsString()
+  @IsOptional()
+  productInterest?: string;
 }
 
 export class FilterLeadsDto {
