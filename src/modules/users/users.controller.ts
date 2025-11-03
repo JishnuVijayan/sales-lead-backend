@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { CreateUserDto, UpdateUserDto, LoginDto } from './dto/user.dto';
+import { CreateUserDto, UpdateUserDto, LoginDto, SignupDto } from './dto/user.dto';
 import { JwtService } from '@nestjs/jwt';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
@@ -20,6 +20,29 @@ export class UsersController {
   @Roles(UserRole.ADMIN)
   create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
+  }
+
+  @Post('signup')
+  @HttpCode(HttpStatus.CREATED)
+  async signup(@Body() signupDto: SignupDto) {
+    // Set default role for new users
+    const createUserDto: CreateUserDto = {
+      ...signupDto,
+      role: UserRole.SALES_EXECUTIVE, // Default role for new signups
+    };
+
+    const user = await this.usersService.create(createUserDto);
+
+    // Auto-login after signup
+    const payload = { email: user.email, sub: user.id };
+    const token = this.jwtService.sign(payload);
+
+    return {
+      success: true,
+      message: 'Account created successfully',
+      user,
+      access_token: token
+    };
   }
 
   @Post('login')

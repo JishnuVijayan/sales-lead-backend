@@ -1,16 +1,18 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, HttpStatus, Res } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, HttpStatus, Res, UseGuards, Request } from '@nestjs/common';
 import type { Response } from 'express';
 import { ProposalsService } from './proposals.service';
 import { CreateProposalDto, UpdateProposalDto } from './dto/proposal.dto';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
 @Controller('proposals')
+@UseGuards(JwtAuthGuard)
 export class ProposalsController {
   constructor(private readonly proposalsService: ProposalsService) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  create(@Body() createProposalDto: CreateProposalDto) {
-    return this.proposalsService.create(createProposalDto);
+  create(@Body() createProposalDto: CreateProposalDto, @Request() req: any) {
+    return this.proposalsService.create(createProposalDto, req.user.id);
   }
 
   @Get()
@@ -46,8 +48,8 @@ export class ProposalsController {
   }
 
   @Get(':id/pdf')
-  async generatePdf(@Param('id') id: string, @Res() res: Response) {
-    const pdfBuffer = await this.proposalsService.generatePdf(id);
+  async generatePdf(@Param('id') id: string, @Res() res: Response, @Request() req: any) {
+    const pdfBuffer = await this.proposalsService.generatePdf(id, req.user.id);
 
     res.set({
       'Content-Type': 'application/pdf',

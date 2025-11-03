@@ -1,9 +1,14 @@
 import { IsString, IsEnum, IsOptional, IsUUID, IsNumber, IsDateString } from 'class-validator';
 import { WorkOrderStatus } from '../../../entities';
+import { Transform } from 'class-transformer';
 
 export class CreateWorkOrderDto {
   @IsUUID()
   leadId: string;
+
+  @IsUUID()
+  @IsOptional()
+  negotiationId?: string;
 
   @IsString()
   title: string;
@@ -11,6 +16,10 @@ export class CreateWorkOrderDto {
   @IsString()
   @IsOptional()
   description?: string;
+
+  @IsEnum(WorkOrderStatus)
+  @IsOptional()
+  status?: WorkOrderStatus;
 
   @IsNumber()
   @IsOptional()
@@ -20,12 +29,18 @@ export class CreateWorkOrderDto {
   @IsOptional()
   expectedDeliveryDate?: string;
 
+  @IsDateString()
+  @IsOptional()
+  actualDeliveryDate?: string;
+
   @IsUUID()
   @IsOptional()
+  @Transform(({ value }) => value === '' ? undefined : value)
   assignedToOperationsId?: string;
 
   @IsUUID()
   @IsOptional()
+  @Transform(({ value }) => value === '' ? undefined : value)
   assignedToAccountsId?: string;
 
   @IsUUID()
@@ -38,6 +53,10 @@ export class CreateWorkOrderDto {
 }
 
 export class UpdateWorkOrderDto {
+  @IsUUID()
+  @IsOptional()
+  negotiationId?: string;
+
   @IsString()
   @IsOptional()
   title?: string;

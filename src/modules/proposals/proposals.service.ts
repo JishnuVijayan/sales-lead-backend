@@ -1,9 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Proposal, ProposalItem, ProposalStatus } from '../../entities';
+import { Proposal, ProposalItem, ProposalStatus, UserRole } from '../../entities';
 import { CreateProposalDto, UpdateProposalDto } from './dto/proposal.dto';
 import { LeadsService } from '../leads/leads.service';
+import { UsersService } from '../users/users.service';
 import { PdfService } from '../../services/pdf.service';
 
 @Injectable()
@@ -14,10 +15,11 @@ export class ProposalsService {
     @InjectRepository(ProposalItem)
     private proposalItemsRepository: Repository<ProposalItem>,
     private leadsService: LeadsService,
+    private usersService: UsersService,
     private pdfService: PdfService,
   ) {}
 
-  async create(createProposalDto: CreateProposalDto): Promise<Proposal> {
+  async create(createProposalDto: CreateProposalDto, userId: string): Promise<Proposal> {
     const { items, ...proposalData } = createProposalDto;
 
     // Generate proposal number
@@ -39,6 +41,7 @@ export class ProposalsService {
       totalAmount,
       taxPercent: proposalData.taxPercent || 0,
       discountPercent: proposalData.discountPercent || 0,
+      createdById: userId,
     });
 
     const savedProposal = await this.proposalsRepository.save(proposal);
@@ -222,8 +225,34 @@ export class ProposalsService {
     return this.findOne(savedProposal.id);
   }
 
-  async generatePdf(id: string): Promise<Buffer> {
+  async generatePdf(id: string, userId: string): Promise<Buffer> {
     const proposal = await this.findOne(id);
+    
+    // Check permissions
+    if (!(await this.canAccessProposal(proposal, userId))) {
+      throw new Error('Access denied: You do not have permission to access this proposal');
+    }
+    
     return await this.pdfService.generateProposalPdf(proposal);
+  }
+
+  private async canAccessProposal(proposal: Proposal, userId: string): Promise<boolean> {
+    // If user created the proposal, they can access it
+    if (proposal.createdById === userId) {
+      return true;
+    }
+    
+    // If user is assigned to the lead, they can access proposals for that lead
+    if (proposal.lead?.assignedToId === userId) {
+      return true;
+    }
+    
+    // Check user role for broader access
+    const user = await this.usersService.findOne(userId);
+    if (user.role === UserRole.ADMIN || user.role === UserRole.SALES_MANAGER) {
+      return true;
+    }
+    
+    return false;
   }
 }

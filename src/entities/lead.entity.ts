@@ -4,6 +4,7 @@ import { Proposal } from './proposal.entity';
 import { WorkOrder } from './work-order.entity';
 import { Document } from './document.entity';
 import { User } from './user.entity';
+import { Negotiation } from './negotiation.entity';
 
 export enum LeadStatus {
   NEW = 'New',
@@ -106,6 +107,13 @@ export class Lead {
   @Column({ name: 'assigned_to', nullable: true })
   assignedToId: string;
 
+  @ManyToOne(() => User, { nullable: true, eager: true })
+  @JoinColumn({ name: 'created_by' })
+  createdBy: User;
+
+  @Column({ name: 'created_by', nullable: true })
+  createdById: string;
+
   @CreateDateColumn({ name: 'created_date' })
   createdDate: Date;
 
@@ -160,6 +168,9 @@ export class Lead {
 
   @OneToMany(() => WorkOrder, workOrder => workOrder.lead)
   workOrders: WorkOrder[];
+
+  @OneToMany(() => Negotiation, negotiation => negotiation.lead)
+  negotiations: Negotiation[];
 
   // Virtual fields for aging calculation
   leadAge?: number;

@@ -13,14 +13,17 @@ import { Proposal } from './entities/proposal.entity';
 import { ProposalItem } from './entities/proposal-item.entity';
 import { WorkOrder } from './entities/work-order.entity';
 import { Document } from './entities/document.entity';
+import { Negotiation } from './entities/negotiation.entity';
 import { LeadsModule } from './modules/leads/leads.module';
 import { ActivitiesModule } from './modules/activities/activities.module';
 import { ProposalsModule } from './modules/proposals/proposals.module';
 import { WorkOrdersModule } from './modules/work-orders/work-orders.module';
 import { UsersModule } from './modules/users/users.module';
 import { DocumentsModule } from './modules/documents/documents.module';
+import { NegotiationsModule } from './modules/negotiations/negotiations.module';
 import { SchedulerModule } from './scheduler/scheduler.module';
 import { AuthModule } from './auth/auth.module';
+import { ReportsModule } from './modules/reports/reports.module';
 
 @Module({
   imports: [
@@ -37,7 +40,7 @@ import { AuthModule } from './auth/auth.module';
         username: configService.get('DB_USERNAME'),
         password: configService.get('DB_PASSWORD'),
         database: configService.get('DB_DATABASE'),
-        entities: [Lead, User, LeadActivity, Proposal, ProposalItem, WorkOrder, Document],
+        entities: [Lead, User, LeadActivity, Proposal, ProposalItem, WorkOrder, Document, Negotiation],
         synchronize: configService.get('NODE_ENV') === 'development',
         logging: configService.get('NODE_ENV') === 'development',
       }),
@@ -54,8 +57,10 @@ import { AuthModule } from './auth/auth.module';
     WorkOrdersModule,
     UsersModule,
     DocumentsModule,
+    NegotiationsModule,
     SchedulerModule,
     AuthModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

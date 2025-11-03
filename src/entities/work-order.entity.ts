@@ -1,6 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { Lead } from './lead.entity';
 import { User } from './user.entity';
+import { Negotiation } from './negotiation.entity';
 
 export enum WorkOrderStatus {
   PENDING = 'Pending',
@@ -23,6 +24,13 @@ export class WorkOrder {
 
   @Column({ name: 'lead_id' })
   leadId: string;
+
+  @ManyToOne(() => Negotiation, { nullable: true, eager: true })
+  @JoinColumn({ name: 'negotiation_id' })
+  negotiation: Negotiation;
+
+  @Column({ name: 'negotiation_id', nullable: true })
+  negotiationId: string;
 
   @Column()
   title: string;

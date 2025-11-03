@@ -57,3 +57,22 @@ export class LoginDto {
   @IsString()
   password: string;
 }
+
+export class SignupDto {
+  @IsString()
+  name: string;
+
+  @IsEmail()
+  email: string;
+
+  @IsString()
+  password: string;
+
+  @IsString()
+  @IsOptional()
+  phone?: string;
+
+  @IsString()
+  @IsOptional()
+  department?: string;
+}

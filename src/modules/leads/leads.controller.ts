@@ -1,15 +1,17 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, HttpCode, HttpStatus, UseGuards, Request } from '@nestjs/common';
 import { LeadsService } from './leads.service';
 import { CreateLeadDto, UpdateLeadDto, QualifyLeadDto, FilterLeadsDto } from './dto/lead.dto';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
 @Controller('leads')
+@UseGuards(JwtAuthGuard)
 export class LeadsController {
   constructor(private readonly leadsService: LeadsService) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  create(@Body() createLeadDto: CreateLeadDto) {
-    return this.leadsService.create(createLeadDto);
+  create(@Body() createLeadDto: CreateLeadDto, @Request() req: any) {
+    return this.leadsService.create(createLeadDto, req.user.id);
   }
 
   @Get()
@@ -70,6 +72,12 @@ export class LeadsController {
   @HttpCode(HttpStatus.OK)
   markAsDormant(@Param('id') id: string) {
     return this.leadsService.markAsDormant(id);
+  }
+
+  @Patch(':id/claim')
+  @HttpCode(HttpStatus.OK)
+  claim(@Param('id') id: string, @Body('userId') userId: string) {
+    return this.leadsService.claim(id, userId);
   }
 
   @Delete(':id')

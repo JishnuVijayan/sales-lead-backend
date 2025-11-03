@@ -13,12 +13,13 @@ export class LeadsService {
     private configService: ConfigService,
   ) {}
 
-  async create(createLeadDto: CreateLeadDto): Promise<Lead> {
+  async create(createLeadDto: CreateLeadDto, userId: string): Promise<Lead> {
     const lead = this.leadsRepository.create({
       ...createLeadDto,
       status: LeadStatus.NEW,
       isActive: true,
       lastActionDate: new Date(),
+      createdById: userId,
     });
 
     return await this.leadsRepository.save(lead);
@@ -168,6 +169,15 @@ export class LeadsService {
     lead.status = LeadStatus.DORMANT;
     lead.dormantDate = new Date();
     lead.isActive = false;
+    lead.lastActionDate = new Date();
+
+    return await this.leadsRepository.save(lead);
+  }
+
+  async claim(id: string, userId: string): Promise<Lead> {
+    const lead = await this.findOne(id);
+
+    lead.assignedToId = userId;
     lead.lastActionDate = new Date();
 
     return await this.leadsRepository.save(lead);

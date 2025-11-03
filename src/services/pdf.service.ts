@@ -30,29 +30,39 @@ export class PdfService implements OnModuleInit, OnModuleDestroy {
     }
 
     // Read HTML template
-    const templatePath = path.join(__dirname, '..', '..', '..', 'src', 'templates', 'proposal.html');
+    const templatePath = path.join(process.cwd(), 'src', 'templates', 'proposal.html');
     const templateSource = fs.readFileSync(templatePath, 'utf8');
     const template = handlebars.compile(templateSource);
 
     // Prepare template data
     const templateData = {
       proposalNumber: proposal.proposalNumber,
-      lead: proposal.lead,
+      lead: proposal.lead ? {
+        name: proposal.lead.name || 'N/A',
+        organization: proposal.lead.organization || 'N/A',
+        email: proposal.lead.email || 'N/A',
+        phone: proposal.lead.phone || 'N/A',
+      } : {
+        name: 'N/A',
+        organization: 'N/A',
+        email: 'N/A',
+        phone: 'N/A',
+      },
       createdDate: new Date(proposal.createdDate).toLocaleDateString(),
       validUntil: proposal.validUntil ? new Date(proposal.validUntil).toLocaleDateString() : null,
-      items: proposal.items.map(item => ({
+      items: (proposal.items || []).map(item => ({
         ...item,
-        quantity: parseFloat(item.quantity.toString()),
-        unitPrice: parseFloat(item.unitPrice.toString()),
-        totalPrice: (parseFloat(item.quantity.toString()) * parseFloat(item.unitPrice.toString())).toFixed(2),
+        quantity: parseFloat(item.quantity?.toString() || '0'),
+        unitPrice: parseFloat(item.unitPrice?.toString() || '0'),
+        totalPrice: (parseFloat(item.quantity?.toString() || '0') * parseFloat(item.unitPrice?.toString() || '0')).toFixed(2),
       })),
-      subtotal: parseFloat(proposal.subtotal.toString()).toFixed(2),
-      taxAmount: parseFloat(proposal.taxAmount.toString()).toFixed(2),
-      discountAmount: parseFloat(proposal.discountAmount.toString()).toFixed(2),
-      totalAmount: parseFloat(proposal.totalAmount.toString()).toFixed(2),
-      taxPercent: parseFloat(proposal.taxPercent.toString()),
-      discountPercent: parseFloat(proposal.discountPercent.toString()),
-      termsAndConditions: proposal.termsAndConditions,
+      subtotal: parseFloat(proposal.subtotal?.toString() || '0').toFixed(2),
+      taxAmount: parseFloat(proposal.taxAmount?.toString() || '0').toFixed(2),
+      discountAmount: parseFloat(proposal.discountAmount?.toString() || '0').toFixed(2),
+      totalAmount: parseFloat(proposal.totalAmount?.toString() || '0').toFixed(2),
+      taxPercent: parseFloat(proposal.taxPercent?.toString() || '0'),
+      discountPercent: parseFloat(proposal.discountPercent?.toString() || '0'),
+      termsAndConditions: proposal.termsAndConditions || 'Standard terms and conditions apply.',
     };
 
     // Generate HTML
