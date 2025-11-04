@@ -43,6 +43,8 @@ import { ReportsModule } from './modules/reports/reports.module';
         entities: [Lead, User, LeadActivity, Proposal, ProposalItem, WorkOrder, Document, Negotiation],
         synchronize: configService.get('NODE_ENV') === 'development',
         logging: configService.get('NODE_ENV') === 'development',
+        // Enable SSL for production Postgres (Neon requires sslmode=require)
+        ssl: configService.get('NODE_ENV') === 'production' ? { rejectUnauthorized: false } : false,
       }),
       inject: [ConfigService],
     }),
