@@ -14,6 +14,15 @@ export class WorkOrdersService {
   ) {}
 
   async create(createWorkOrderDto: CreateWorkOrderDto): Promise<WorkOrder> {
+    // Check if a work order already exists for this lead
+    const existingWorkOrder = await this.workOrdersRepository.findOne({
+      where: { leadId: createWorkOrderDto.leadId },
+    });
+
+    if (existingWorkOrder) {
+      throw new Error('A work order already exists for this lead');
+    }
+
     // Generate work order number
     const count = await this.workOrdersRepository.count();
     const workOrderNumber = `WO-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
