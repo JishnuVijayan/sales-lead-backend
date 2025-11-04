@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import * as puppeteer from 'puppeteer';
 import * as handlebars from 'handlebars';
 import * as fs from 'fs';
@@ -8,13 +8,28 @@ import { Proposal } from '../entities';
 @Injectable()
 export class PdfService implements OnModuleInit, OnModuleDestroy {
   private browser: puppeteer.Browser | null = null;
+  private readonly logger = new Logger(PdfService.name);
 
   async onModuleInit() {
-    // Initialize browser on module startup
-    this.browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    });
+    // Try to initialize browser on module startup, but do not crash the app if
+    // Chrome is not available (common in minimal cloud containers).
+    // We'll attempt a lazy initialization when a PDF is requested.
+    if (process.env.DISABLE_PUPPETEER_ON_STARTUP === 'true') {
+      this.logger.log('Puppeteer startup disabled by DISABLE_PUPPETEER_ON_STARTUP');
+      return;
+    }
+
+    try {
+      this.browser = await puppeteer.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      });
+      this.logger.log('Puppeteer browser initialized');
+    } catch (err: any) {
+      // Don't let Puppeteer failures crash the whole application. Log and continue.
+      this.browser = null;
+      this.logger.warn(`Puppeteer failed to launch on startup: ${err?.message || err}`);
+    }
   }
 
   async onModuleDestroy() {
@@ -25,8 +40,18 @@ export class PdfService implements OnModuleInit, OnModuleDestroy {
   }
 
   async generateProposalPdf(proposal: Proposal): Promise<Buffer> {
+    // Lazy-initialize the browser if it wasn't started during module init.
     if (!this.browser) {
-      throw new Error('Browser not initialized');
+      try {
+        this.browser = await puppeteer.launch({
+          headless: true,
+          args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        });
+        this.logger.log('Puppeteer browser lazily initialized for PDF generation');
+      } catch (err: any) {
+        this.logger.error(`Unable to initialize Puppeteer for PDF generation: ${err?.message || err}`);
+        throw new Error('PDF generation is currently unavailable in this environment.');
+      }
     }
 
     // Read HTML template
