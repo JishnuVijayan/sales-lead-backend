@@ -35,6 +35,7 @@ export class NotificationsService {
     message: string,
     entityType?: string,
     entityId?: string,
+    sendEmail: boolean = false, // Email disabled by default - only in-app notifications
   ): Promise<Notification> {
     const notification = this.notificationsRepository.create({
       recipientId,
@@ -48,10 +49,16 @@ export class NotificationsService {
 
     const saved = await this.notificationsRepository.save(notification);
     
-    // Send email asynchronously
-    this.sendEmail(saved.id).catch(err => 
-      this.logger.error(`Failed to send notification ${saved.id}: ${err.message}`)
-    );
+    // Send email only if explicitly requested
+    if (sendEmail && process.env.SMTP_USER) {
+      this.sendEmail(saved.id).catch(err => 
+        this.logger.error(`Failed to send notification ${saved.id}: ${err.message}`)
+      );
+    } else {
+      // Mark as "sent" for in-app notifications (no email needed)
+      saved.status = NotificationStatus.SENT;
+      await this.notificationsRepository.save(saved);
+    }
 
     return saved;
   }

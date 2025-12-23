@@ -8,6 +8,7 @@ export class CreateWorkOrderDto {
 
   @IsUUID()
   @IsOptional()
+  @Transform(({ value }) => value === '' ? undefined : value)
   negotiationId?: string;
 
   @IsString()
@@ -55,6 +56,7 @@ export class CreateWorkOrderDto {
 export class UpdateWorkOrderDto {
   @IsUUID()
   @IsOptional()
+  @Transform(({ value }) => value === '' ? undefined : value)
   negotiationId?: string;
 
   @IsString()
@@ -83,10 +85,12 @@ export class UpdateWorkOrderDto {
 
   @IsUUID()
   @IsOptional()
+  @Transform(({ value }) => value === '' ? undefined : value)
   assignedToOperationsId?: string;
 
   @IsUUID()
   @IsOptional()
+  @Transform(({ value }) => value === '' ? undefined : value)
   assignedToAccountsId?: string;
 
   @IsString()

@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Approval } from '../../entities/approval.entity';
+import { User } from '../../entities/user.entity';
 import { ApprovalsService } from './approvals.service';
 import { ApprovalsController } from './approvals.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Approval])],
+  imports: [TypeOrmModule.forFeature([Approval, User])],
   providers: [ApprovalsService],
   controllers: [ApprovalsController],
   exports: [ApprovalsService],

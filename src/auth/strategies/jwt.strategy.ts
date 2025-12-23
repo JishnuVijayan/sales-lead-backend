@@ -18,6 +18,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!user) {
       throw new UnauthorizedException();
     }
-    return user;
+    
+    // Add userId for backward compatibility (many controllers use req.user.userId)
+    return {
+      ...user,
+      userId: user.id, // Add userId as alias to id
+    };
   }
 }

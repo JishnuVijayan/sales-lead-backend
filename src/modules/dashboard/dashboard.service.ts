@@ -176,6 +176,62 @@ export class DashboardService {
         });
         break;
 
+      case UserRole.PRESALES:
+        // Qualified Leads (Presales works on qualified leads for technical proposals)
+        const qualifiedLeads = await this.leadsRepository.count({
+          where: { status: LeadStatus.QUALIFIED, isActive: true },
+        });
+        widgets.push({
+          id: 'qualified-leads',
+          title: 'Qualified Leads',
+          value: qualifiedLeads,
+          icon: 'users',
+          color: 'blue',
+          link: '/leads?status=qualified',
+        });
+
+        // Leads in Proposal Stage
+        const proposalStageLeads = await this.leadsRepository.count({
+          where: { status: LeadStatus.PROPOSAL, isActive: true },
+        });
+        widgets.push({
+          id: 'proposal-stage-leads',
+          title: 'Leads in Proposal Stage',
+          value: proposalStageLeads,
+          icon: 'file-text',
+          color: 'yellow',
+          link: '/leads?status=proposal',
+        });
+
+        // Technical Evaluations Needed
+        const needsEvaluation = await this.leadsRepository.count({
+          where: { 
+            status: In([LeadStatus.QUALIFIED, LeadStatus.PROPOSAL]),
+            isActive: true,
+          },
+        });
+        widgets.push({
+          id: 'needs-evaluation',
+          title: 'Technical Evaluations Needed',
+          value: needsEvaluation,
+          icon: 'clipboard',
+          color: 'purple',
+        });
+
+        // Won Deals (for reference/success tracking)
+        const wonDeals = await this.leadsRepository.count({
+          where: { status: LeadStatus.WON },
+        });
+        widgets.push({
+          id: 'won-deals',
+          title: 'Total Won Deals',
+          value: wonDeals,
+          icon: 'check-circle',
+          color: 'green',
+          link: '/leads?status=won',
+        });
+        break;
+
       case UserRole.CEO:
       case UserRole.FINANCE:
       case UserRole.LEGAL:
@@ -384,6 +440,24 @@ export class DashboardService {
         { label: 'Negotiation', value: statusCounts.negotiation, color: '#10B981' },
         { label: 'Won', value: statusCounts.won, color: '#059669' },
         { label: 'Lost', value: statusCounts.lost, color: '#EF4444' },
+      );
+    }
+
+    if (role === UserRole.PRESALES) {
+      const allLeads = await this.leadsRepository.find();
+
+      const statusCounts = {
+        qualified: allLeads.filter(l => l.status === LeadStatus.QUALIFIED).length,
+        proposal: allLeads.filter(l => l.status === LeadStatus.PROPOSAL).length,
+        negotiation: allLeads.filter(l => l.status === LeadStatus.NEGOTIATION).length,
+        won: allLeads.filter(l => l.status === LeadStatus.WON).length,
+      };
+
+      metrics.push(
+        { label: 'Qualified', value: statusCounts.qualified, color: '#8B5CF6' },
+        { label: 'Proposal', value: statusCounts.proposal, color: '#F59E0B' },
+        { label: 'Negotiation', value: statusCounts.negotiation, color: '#10B981' },
+        { label: 'Won', value: statusCounts.won, color: '#059669' },
       );
     }
 

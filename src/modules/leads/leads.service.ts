@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { Lead, LeadStatus, LeadAgingStatus } from '../../entities';
 import { CreateLeadDto, UpdateLeadDto, QualifyLeadDto, FilterLeadsDto } from './dto/lead.dto';
 import { RequestQualificationDto, ApproveQualificationDto } from './dto/lead.dto';
+import { ComprehensiveNotificationsService } from '../notifications/comprehensive-notifications.service';
 
 @Injectable()
 export class LeadsService {
@@ -12,6 +13,7 @@ export class LeadsService {
     @InjectRepository(Lead)
     private leadsRepository: Repository<Lead>,
     private configService: ConfigService,
+    private notificationsService: ComprehensiveNotificationsService,
   ) {}
 
   async create(createLeadDto: CreateLeadDto, userId: string): Promise<Lead> {
@@ -23,7 +25,17 @@ export class LeadsService {
       createdById: userId,
     });
 
-    return await this.leadsRepository.save(lead);
+    const savedLead = await this.leadsRepository.save(lead);
+    
+    // Send in-app notification
+    try {
+      await this.notificationsService.notifyLeadCreated(savedLead.id, userId);
+    } catch (error) {
+      // Log error but don't fail lead creation
+      console.error('Failed to send notification:', error);
+    }
+
+    return savedLead;
   }
 
   async findAll(filterDto: FilterLeadsDto): Promise<{ data: Lead[]; total: number; page: number; limit: number }> {
@@ -105,7 +117,7 @@ export class LeadsService {
     return await this.leadsRepository.save(updatedLead);
   }
 
-  async qualify(id: string, qualifyDto: QualifyLeadDto): Promise<Lead> {
+  async qualify(id: string, qualifyDto: QualifyLeadDto, userId?: string): Promise<Lead> {
     const lead = await this.findOne(id);
 
     const updatedLead = this.leadsRepository.merge(lead, {
@@ -115,7 +127,16 @@ export class LeadsService {
       lastActionDate: new Date(),
     });
 
-    return await this.leadsRepository.save(updatedLead);
+    const savedLead = await this.leadsRepository.save(updatedLead);
+    
+    // Send in-app notification
+    try {
+      await this.notificationsService.notifyLeadQualified(savedLead.id, userId || savedLead.createdById);
+    } catch (error) {
+      console.error('Failed to send notification:', error);
+    }
+
+    return savedLead;
   }
 
   async convertToWon(id: string): Promise<Lead> {
@@ -128,7 +149,12 @@ export class LeadsService {
     lead.wonDate = new Date();
     lead.lastActionDate = new Date();
 
-    return await this.leadsRepository.save(lead);
+    const savedLead = await this.leadsRepository.save(lead);
+    
+    // Note: notifyLeadWon will be called from work-orders service
+    // when work order is created with the workOrderId
+
+    return savedLead;
   }
 
   async markAsLost(id: string, reason?: string): Promise<Lead> {

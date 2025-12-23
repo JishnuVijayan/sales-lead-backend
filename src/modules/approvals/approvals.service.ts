@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException, ForbiddenException 
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Approval, ApprovalStatus, ApprovalStage, ApprovalContext } from '../../entities/approval.entity';
+import { User } from '../../entities/user.entity';
 import { CreateApprovalDto, UpdateApprovalDto, RespondToApprovalDto, BulkCreateApprovalsDto } from './dto/approval.dto';
 
 @Injectable()
@@ -9,6 +10,8 @@ export class ApprovalsService {
   constructor(
     @InjectRepository(Approval)
     private approvalsRepository: Repository<Approval>,
+    @InjectRepository(User)
+    private usersRepository: Repository<User>,
   ) {}
 
   /**
@@ -27,13 +30,24 @@ export class ApprovalsService {
     const approvals: Approval[] = [];
     
     for (const stageConfig of bulkDto.stages) {
+      // Find a user with the matching role to assign as approver
+      let approverId = stageConfig.approverId;
+      if (!approverId && stageConfig.approverRole) {
+        const userWithRole = await this.usersRepository.findOne({
+          where: { role: stageConfig.approverRole as any },
+        });
+        if (userWithRole) {
+          approverId = userWithRole.id;
+        }
+      }
+
       const approval = this.approvalsRepository.create({
         context: bulkDto.context,
         entityId: bulkDto.entityId,
         leadId: bulkDto.leadId,
         stage: stageConfig.stage,
         approverRole: stageConfig.approverRole,
-        approverId: stageConfig.approverId,
+        approverId: approverId,
         isMandatory: stageConfig.isMandatory ?? true,
         sequenceOrder: stageConfig.sequenceOrder,
         status: ApprovalStatus.PENDING,
@@ -101,8 +115,17 @@ export class ApprovalsService {
       throw new NotFoundException(`Approval with ID ${id} not found`);
     }
 
-    // Authorization check
-    if (approval.approverId && approval.approverId !== userId) {
+    // Get current user to check role
+    const currentUser = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!currentUser) {
+      throw new ForbiddenException('User not found');
+    }
+
+    // Authorization check - allow if user is the assigned approver OR has the required role
+    const isAssignedApprover = approval.approverId === userId;
+    const hasRequiredRole = approval.approverRole && currentUser.role === approval.approverRole;
+    
+    if (!isAssignedApprover && !hasRequiredRole) {
       throw new ForbiddenException('You are not authorized to respond to this approval');
     }
 

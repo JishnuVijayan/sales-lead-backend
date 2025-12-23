@@ -168,6 +168,7 @@ export class LeadAgingSchedulerService {
           isActive: true,
           isConverted: false,
         },
+        relations: ['assignedTo', 'createdBy'], // Load relations to preserve them
       });
 
       for (const lead of activeLeads) {

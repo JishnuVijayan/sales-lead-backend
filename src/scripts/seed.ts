@@ -9,103 +9,84 @@ async function seed() {
 
   const users = [
     {
-      name: 'Admin User',
-      email: 'admin@company.com',
-      password: 'password@123',
-      role: UserRole.ADMIN,
-      department: 'IT',
-      phone: '+1-555-0001',
-    },
-    {
-      name: 'John Smith',
-      email: 'john.smith@company.com',
-      password: 'password@123',
+      name: 'Account Manager',
+      email: 'accountmgr@company.com',
+      password: 'password123',
       role: UserRole.ACCOUNT_MANAGER,
       department: 'Sales',
-      phone: '+1-555-0002',
+      phone: '+91-9876543201',
     },
     {
-      name: 'Sarah Johnson',
-      email: 'sarah.johnson@company.com',
-      password: 'password@123',
+      name: 'Sales Manager',
+      email: 'salesmgr@company.com',
+      password: 'password123',
       role: UserRole.SALES_MANAGER,
       department: 'Sales',
-      phone: '+1-555-0003',
+      phone: '+91-9876543202',
     },
     {
-      name: 'Michael Chen',
-      email: 'michael.chen@company.com',
-      password: 'password@123',
+      name: 'Presales Team',
+      email: 'presales@company.com',
+      password: 'password123',
       role: UserRole.PRESALES,
       department: 'Sales',
-      phone: '+1-555-0004',
+      phone: '+91-9876543203',
     },
     {
-      name: 'Emily Davis',
-      email: 'emily.davis@company.com',
-      password: 'password@123',
+      name: 'Delivery Manager',
+      email: 'delivery@company.com',
+      password: 'password123',
       role: UserRole.DELIVERY_MANAGER,
       department: 'Delivery',
-      phone: '+1-555-0005',
+      phone: '+91-9876543204',
     },
     {
-      name: 'David Wilson',
-      email: 'david.wilson@company.com',
-      password: 'password@123',
-      role: UserRole.PROCUREMENT,
-      department: 'Procurement',
-      phone: '+1-555-0006',
-    },
-    {
-      name: 'Jennifer Brown',
-      email: 'jennifer.brown@company.com',
-      password: 'password@123',
-      role: UserRole.FINANCE,
-      department: 'Finance',
-      phone: '+1-555-0007',
-    },
-    {
-      name: 'Robert Martinez',
-      email: 'robert.martinez@company.com',
-      password: 'password@123',
+      name: 'Legal Team',
+      email: 'legal@company.com',
+      password: 'password123',
       role: UserRole.LEGAL,
       department: 'Legal',
-      phone: '+1-555-0008',
+      phone: '+91-9876543205',
     },
     {
-      name: 'James Anderson',
-      email: 'james.anderson@company.com',
-      password: 'password@123',
+      name: 'Finance Team',
+      email: 'finance@company.com',
+      password: 'password123',
+      role: UserRole.FINANCE,
+      department: 'Finance',
+      phone: '+91-9876543206',
+    },
+    {
+      name: 'Procurement Team',
+      email: 'procurement@company.com',
+      password: 'password123',
+      role: UserRole.PROCUREMENT,
+      department: 'Procurement',
+      phone: '+91-9876543207',
+    },
+    {
+      name: 'CEO',
+      email: 'ceo@company.com',
+      password: 'password123',
       role: UserRole.CEO,
       department: 'Executive',
-      phone: '+1-555-0009',
+      phone: '+91-9876543208',
     },
     {
-      name: 'Lisa Taylor',
-      email: 'lisa.taylor@company.com',
-      password: 'password@123',
+      name: 'ULCCS Approver',
+      email: 'ulccs@company.com',
+      password: 'password123',
       role: UserRole.ULCCS_APPROVER,
       department: 'Compliance',
-      phone: '+1-555-0010',
-    },
-    // Backward compatibility - keep original test accounts
-    {
-      name: 'User One',
-      email: 'user1@gmail.com',
-      password: 'password@123',
-      role: UserRole.ACCOUNT_MANAGER,
+      phone: '+91-9876543209',
     },
     {
-      name: 'User Two',
-      email: 'user2@gmail.com',
-      password: 'password@123',
-      role: UserRole.SALES_MANAGER,
-    },
-    {
-      name: 'User Three',
-      email: 'user3@gmail.com',
-      password: 'password@123',
+      name: 'System Administrator',
+      email: 'admin@example.com',
+      password: 'password123',
       role: UserRole.ADMIN,
+      department: 'IT',
+      phone: '+91-9876543210',
     },
   ];
 
@@ -125,22 +106,24 @@ async function seed() {
 
   await app.close();
   console.log('\n========================================');
-  console.log('Seeding completed!');
+  console.log('✅ SEEDING COMPLETED!');
   console.log('========================================');
-  console.log('\nTest Users Created:');
+  console.log('\n📋 Demo Users Created (SRS_DEMO_FLOW):');
   console.log('─────────────────────────────────────────');
-  console.log('Admin:              admin@company.com');
-  console.log('Account Manager:    john.smith@company.com');
-  console.log('Sales Manager:      sarah.johnson@company.com');
-  console.log('Presales:           michael.chen@company.com');
-  console.log('Delivery Manager:   emily.davis@company.com');
-  console.log('Procurement:        david.wilson@company.com');
-  console.log('Finance:            jennifer.brown@company.com');
-  console.log('Legal:              robert.martinez@company.com');
-  console.log('CEO:                james.anderson@company.com');
-  console.log('ULCCS Approver:     lisa.taylor@company.com');
+  console.log('Account Manager:    accountmgr@company.com');
+  console.log('Sales Manager:      salesmgr@company.com');
+  console.log('Presales:           presales@company.com');
+  console.log('Delivery Manager:   delivery@company.com');
+  console.log('Legal Team:         legal@company.com');
+  console.log('Finance Team:       finance@company.com');
+  console.log('Procurement:        procurement@company.com');
+  console.log('CEO:                ceo@company.com');
+  console.log('ULCCS Approver:     ulccs@company.com');
+  console.log('Admin:              admin@example.com');
   console.log('─────────────────────────────────────────');
-  console.log('Password for all:   password@123');
+  console.log('🔑 Password for all: password123');
+  console.log('========================================');
+  console.log('\n💡 Run the demo following SRS_DEMO_FLOW.md');
   console.log('========================================\n');
 }
 

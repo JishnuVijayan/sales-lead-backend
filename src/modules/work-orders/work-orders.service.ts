@@ -5,6 +5,7 @@ import { WorkOrder, AgreementType, PaymentTerms } from '../../entities';
 import { CreateWorkOrderDto, UpdateWorkOrderDto } from './dto/work-order.dto';
 import { LeadsService } from '../leads/leads.service';
 import { AgreementsService } from '../agreements/agreements.service';
+import { ComprehensiveNotificationsService } from '../notifications/comprehensive-notifications.service';
 
 @Injectable()
 export class WorkOrdersService {
@@ -13,6 +14,7 @@ export class WorkOrdersService {
     private workOrdersRepository: Repository<WorkOrder>,
     private leadsService: LeadsService,
     private agreementsService: AgreementsService,
+    private notificationsService: ComprehensiveNotificationsService,
   ) {}
 
   async create(createWorkOrderDto: CreateWorkOrderDto): Promise<WorkOrder> {
@@ -38,6 +40,18 @@ export class WorkOrdersService {
 
     // Mark lead as converted
     await this.leadsService.convertToWon(createWorkOrderDto.leadId);
+    
+    // Send lead won notification
+    try {
+      const lead = await this.leadsService.findOne(createWorkOrderDto.leadId);
+      await this.notificationsService.notifyLeadWon(
+        createWorkOrderDto.leadId,
+        lead.organization || lead.name,
+        savedWorkOrder.id,
+      );
+    } catch (error) {
+      console.error('Failed to send notification:', error);
+    }
 
     // Phase 2: Auto-create Agreement when Work Order is created
     if (createWorkOrderDto.createdById) {
