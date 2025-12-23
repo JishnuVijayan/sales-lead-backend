@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, MoreThan, LessThan } from 'typeorm';
+import { Repository, Between, MoreThan, LessThan, In } from 'typeorm';
 import { Lead, LeadStatus, LeadSource, User, UserRole } from '../../entities';
 import { Agreement, AgreementStage } from '../../entities/agreement.entity';
 import { AgreementStageHistory } from '../../entities/agreement-stage-history.entity';
@@ -145,6 +145,20 @@ export class ReportsService {
     private notificationsRepository: Repository<Notification>,
   ) {}
 
+  // Helper method to get actual revenue from agreements
+  private async getActualRevenue(leadIds: string[]): Promise<number> {
+    if (leadIds.length === 0) return 0;
+    
+    const agreements = await this.agreementsRepository.find({
+      where: {
+        leadId: In(leadIds),
+        stage: In([AgreementStage.SIGNED, AgreementStage.ACTIVE]),
+      },
+    });
+    
+    return agreements.reduce((sum, agreement) => sum + (agreement.contractValue || 0), 0);
+  }
+
   async getOverallStats(startDate?: Date, endDate?: Date): Promise<OverallStats> {
     let query = this.leadsRepository.createQueryBuilder('lead');
 
@@ -163,9 +177,10 @@ export class ReportsService {
       [LeadStatus.NEW, LeadStatus.QUALIFIED, LeadStatus.PROPOSAL, LeadStatus.NEGOTIATION].includes(lead.status)
     );
 
-    // Calculate revenue from won leads (assuming estimatedBudget represents potential revenue)
-    const totalRevenue = wonLeads.reduce((sum, lead) => sum + (lead.estimatedBudget || 0), 0);
-    const averageLeadValue = leads.length > 0 ? totalRevenue / leads.length : 0;
+    // Calculate revenue from actual agreements (contract values)
+    const wonLeadIds = wonLeads.map(lead => lead.id);
+    const totalRevenue = await this.getActualRevenue(wonLeadIds);
+    const averageLeadValue = wonLeads.length > 0 ? totalRevenue / wonLeads.length : 0;
 
     // Calculate average time to close (in days) for won leads
     const closedLeads = wonLeads.filter(lead => lead.closedDate);
@@ -229,8 +244,9 @@ export class ReportsService {
           [LeadStatus.NEW, LeadStatus.QUALIFIED, LeadStatus.PROPOSAL, LeadStatus.NEGOTIATION].includes(lead.status)
         );
 
-        const totalRevenue = wonLeads.reduce((sum, lead) => sum + (lead.estimatedBudget || 0), 0);
-        const averageLeadValue = leads.length > 0 ? totalRevenue / leads.length : 0;
+        const wonLeadIds = wonLeads.map(lead => lead.id);
+        const totalRevenue = await this.getActualRevenue(wonLeadIds);
+        const averageLeadValue = wonLeads.length > 0 ? totalRevenue / wonLeads.length : 0;
         const conversionRate = leads.length > 0 ? (wonLeads.length / leads.length) * 100 : 0;
 
         return {
@@ -273,8 +289,9 @@ export class ReportsService {
           [LeadStatus.NEW, LeadStatus.QUALIFIED, LeadStatus.PROPOSAL, LeadStatus.NEGOTIATION].includes(lead.status)
         );
 
-        const totalRevenue = wonLeads.reduce((sum, lead) => sum + (lead.estimatedBudget || 0), 0);
-        const averageLeadValue = leads.length > 0 ? totalRevenue / leads.length : 0;
+        const wonLeadIds = wonLeads.map(lead => lead.id);
+        const totalRevenue = await this.getActualRevenue(wonLeadIds);
+        const averageLeadValue = wonLeads.length > 0 ? totalRevenue / wonLeads.length : 0;
         const conversionRate = leads.length > 0 ? (wonLeads.length / leads.length) * 100 : 0;
 
         return {
@@ -311,7 +328,8 @@ export class ReportsService {
       const wonLeads = leads.filter(lead => lead.status === LeadStatus.WON);
       const lostLeads = leads.filter(lead => lead.status === LeadStatus.LOST);
 
-      const revenue = wonLeads.reduce((sum, lead) => sum + (lead.estimatedBudget || 0), 0);
+      const wonLeadIds = wonLeads.map(lead => lead.id);
+      const revenue = await this.getActualRevenue(wonLeadIds);
       const conversionRate = leads.length > 0 ? (wonLeads.length / leads.length) * 100 : 0;
 
       monthlyStats.push({
@@ -578,7 +596,7 @@ export class ReportsService {
     }
 
     // Get signed agreements
-    query.andWhere('agreement.currentStage = :stage', { stage: AgreementStage.SIGNED });
+    query.andWhere('agreement.stage = :stage', { stage: AgreementStage.SIGNED });
 
     const agreements = await query.getMany();
 
@@ -622,19 +640,38 @@ export class ReportsService {
       for (const agreement of agreements) {
         const histories = stageHistories.filter(h => h.agreementId === agreement.id);
 
+        // Calculate duration for each stage transition
         for (let i = 0; i < histories.length - 1; i++) {
           const currentHistory = histories[i];
           const nextHistory = histories[i + 1];
 
-          const duration = Math.floor(
-            (new Date(nextHistory.changedDate).getTime() - new Date(currentHistory.changedDate).getTime()) / (1000 * 60 * 60 * 24)
-          );
+          const duration = Math.round(
+            ((new Date(nextHistory.changedDate).getTime() - new Date(currentHistory.changedDate).getTime()) / (1000 * 60 * 60 * 24)) * 10
+          ) / 10;
 
           const stage = currentHistory.toStage;
           if (!stageTimesByStage.has(stage)) {
             stageTimesByStage.set(stage, []);
           }
           stageTimesByStage.get(stage)!.push(duration);
+        }
+
+        // Include the final stage (Signed) with duration from last transition to signing
+        if (histories.length > 0) {
+          const lastHistory = histories[histories.length - 1];
+          const signedDate = agreement.clientSignedDate || agreement.companySignedDate;
+          
+          if (signedDate && lastHistory.toStage) {
+            const duration = Math.round(
+              ((new Date(signedDate).getTime() - new Date(lastHistory.changedDate).getTime()) / (1000 * 60 * 60 * 24)) * 10
+            ) / 10;
+
+            const stage = lastHistory.toStage;
+            if (!stageTimesByStage.has(stage)) {
+              stageTimesByStage.set(stage, []);
+            }
+            stageTimesByStage.get(stage)!.push(duration);
+          }
         }
       }
 
@@ -646,17 +683,17 @@ export class ReportsService {
 
         stageBreakdown.push({
           stage,
-          averageTimeDays: Math.round(avgTime),
+          averageTimeDays: Math.round(avgTime * 10) / 10,
           percentage: Math.round(percentage * 10) / 10,
         });
       }
     }
 
     return {
-      averageCycleTimeDays: Math.round(averageCycleTime),
-      medianCycleTimeDays: Math.round(medianCycleTime),
-      minCycleTimeDays: minCycleTime,
-      maxCycleTimeDays: maxCycleTime,
+      averageCycleTimeDays: Math.round(averageCycleTime * 10) / 10,
+      medianCycleTimeDays: Math.round(medianCycleTime * 10) / 10,
+      minCycleTimeDays: Math.round(minCycleTime * 10) / 10,
+      maxCycleTimeDays: Math.round(maxCycleTime * 10) / 10,
       totalSignedAgreements: agreements.length,
       stageBreakdown,
     };
@@ -800,9 +837,23 @@ export class ReportsService {
 
     const leads = await leadsQuery.getMany();
 
-    // Signed value (Won leads)
+    // Signed value (Won leads) - use actual agreement contract values
     const signedLeads = leads.filter(lead => lead.status === LeadStatus.WON);
-    const signedValue = signedLeads.reduce((sum, lead) => sum + (lead.estimatedBudget || 0), 0);
+    
+    // Get actual revenue from signed agreements for Won leads
+    let signedValue = 0;
+    for (const lead of signedLeads) {
+      const agreement = await this.agreementsRepository.findOne({
+        where: {
+          leadId: lead.id,
+          stage: 'Signed' as any,
+        },
+      });
+      if (agreement) {
+        signedValue += agreement.contractValue || 0;
+      }
+    }
+    
     const signedCount = signedLeads.length;
 
     // Pipeline value (Active leads)

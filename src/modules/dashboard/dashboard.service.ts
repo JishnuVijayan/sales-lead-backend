@@ -241,16 +241,15 @@ export class DashboardService {
           color: 'blue',
         });
 
-        // Active Agreements
-        const activeAgreements = await this.agreementsRepository.count({
-          where: { stage: Not(In([AgreementStage.SIGNED, AgreementStage.CANCELLED])) },
-        });
+        // Total Agreements (all including signed)
+        const totalAgreements = await this.agreementsRepository.count();
         widgets.push({
-          id: 'active-agreements',
-          title: 'Active Agreements',
-          value: activeAgreements,
+          id: 'total-agreements',
+          title: 'Total Agreements',
+          value: totalAgreements,
           icon: 'file-text',
           color: 'green',
+          link: '/agreements',
         });
 
         // SLA Compliance
