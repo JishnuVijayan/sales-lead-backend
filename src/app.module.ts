@@ -14,6 +14,11 @@ import { ProposalItem } from './entities/proposal-item.entity';
 import { WorkOrder } from './entities/work-order.entity';
 import { Document } from './entities/document.entity';
 import { Negotiation } from './entities/negotiation.entity';
+import { Approval } from './entities/approval.entity';
+import { Agreement } from './entities/agreement.entity';
+import { AgreementStageHistory } from './entities/agreement-stage-history.entity';
+import { SLAConfig } from './entities/sla-config.entity';
+import { Notification } from './entities/notification.entity';
 import { LeadsModule } from './modules/leads/leads.module';
 import { ActivitiesModule } from './modules/activities/activities.module';
 import { ProposalsModule } from './modules/proposals/proposals.module';
@@ -24,6 +29,11 @@ import { NegotiationsModule } from './modules/negotiations/negotiations.module';
 import { SchedulerModule } from './scheduler/scheduler.module';
 import { AuthModule } from './auth/auth.module';
 import { ReportsModule } from './modules/reports/reports.module';
+import { ApprovalsModule } from './modules/approvals/approvals.module';
+import { AgreementsModule } from './modules/agreements/agreements.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { SLAModule } from './modules/sla/sla.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -40,7 +50,7 @@ import { ReportsModule } from './modules/reports/reports.module';
         username: configService.get('DB_USERNAME'),
         password: configService.get('DB_PASSWORD'),
         database: configService.get('DB_DATABASE'),
-        entities: [Lead, User, LeadActivity, Proposal, ProposalItem, WorkOrder, Document, Negotiation],
+        entities: [Lead, User, LeadActivity, Proposal, ProposalItem, WorkOrder, Document, Negotiation, Approval, Agreement, AgreementStageHistory, SLAConfig, Notification],
         synchronize: configService.get('NODE_ENV') === 'development',
         logging: configService.get('NODE_ENV') === 'development',
         // Enable SSL for production Postgres (Neon requires sslmode=require)
@@ -62,7 +72,12 @@ import { ReportsModule } from './modules/reports/reports.module';
     NegotiationsModule,
     SchedulerModule,
     AuthModule,
+    ApprovalsModule,
+    AgreementsModule,
     ReportsModule,
+    NotificationsModule,
+    SLAModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],

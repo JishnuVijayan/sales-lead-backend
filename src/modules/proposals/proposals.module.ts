@@ -1,15 +1,22 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Proposal, ProposalItem } from '../../entities';
 import { ProposalsService } from './proposals.service';
 import { ProposalsController } from './proposals.controller';
 import { LeadsModule } from '../leads/leads.module';
 import { UsersModule } from '../users/users.module';
+import { ApprovalsModule } from '../approvals/approvals.module';
 import { PdfService } from '../../services/pdf.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Proposal, ProposalItem]), LeadsModule, UsersModule],
+  imports: [
+    TypeOrmModule.forFeature([Proposal, ProposalItem]), 
+    forwardRef(() => LeadsModule), 
+    UsersModule,
+    ApprovalsModule
+  ],
   controllers: [ProposalsController],
   providers: [ProposalsService, PdfService],
+  exports: [ProposalsService],
 })
 export class ProposalsModule {}

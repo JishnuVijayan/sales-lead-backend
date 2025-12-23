@@ -5,7 +5,7 @@ const API_BASE_URL = 'http://localhost:3000/api';
 // Test PDF download with different user roles
 async function testPdfDownload() {
   const users = [
-    { email: 'user1@gmail.com', password: 'password@123', role: 'SALES_EXECUTIVE' },
+    { email: 'user1@gmail.com', password: 'password@123', role: 'ACCOUNT_MANAGER' },
     { email: 'user2@gmail.com', password: 'password@123', role: 'SALES_MANAGER' },
     { email: 'user3@gmail.com', password: 'password@123', role: 'ADMIN' },
   ];

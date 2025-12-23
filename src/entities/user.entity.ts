@@ -2,11 +2,15 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeor
 
 export enum UserRole {
   ADMIN = 'Admin',
+  ACCOUNT_MANAGER = 'Account Manager',
   SALES_MANAGER = 'Sales Manager',
-  SALES_EXECUTIVE = 'Sales Executive',
-  PRE_SALES = 'Pre Sales',
-  OPERATIONS = 'Operations',
-  ACCOUNTS = 'Accounts',
+  PRESALES = 'Presales',
+  DELIVERY_MANAGER = 'Delivery Manager',
+  FINANCE = 'Finance',
+  LEGAL = 'Legal',
+  PROCUREMENT = 'Procurement',
+  CEO = 'CEO',
+  ULCCS_APPROVER = 'ULCCS Approver',
 }
 
 @Entity('users')
@@ -26,7 +30,7 @@ export class User {
   @Column({
     type: 'enum',
     enum: UserRole,
-    default: UserRole.SALES_EXECUTIVE,
+    default: UserRole.ACCOUNT_MANAGER,
   })
   role: UserRole;
 

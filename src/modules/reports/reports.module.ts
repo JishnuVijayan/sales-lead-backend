@@ -7,6 +7,10 @@ import { User } from '../../entities/user.entity';
 import { LeadActivity } from '../../entities/lead-activity.entity';
 import { Proposal } from '../../entities/proposal.entity';
 import { WorkOrder } from '../../entities/work-order.entity';
+import { Agreement } from '../../entities/agreement.entity';
+import { AgreementStageHistory } from '../../entities/agreement-stage-history.entity';
+import { SLAConfig } from '../../entities/sla-config.entity';
+import { Notification } from '../../entities/notification.entity';
 
 @Module({
   imports: [
@@ -16,6 +20,10 @@ import { WorkOrder } from '../../entities/work-order.entity';
       LeadActivity,
       Proposal,
       WorkOrder,
+      Agreement,
+      AgreementStageHistory,
+      SLAConfig,
+      Notification,
     ]),
   ],
   controllers: [ReportsController],
