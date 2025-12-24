@@ -68,6 +68,14 @@ export class CreateNegotiationDto {
   @Min(0)
   @IsOptional()
   negotiationDuration?: number;
+
+  @IsEnum(NegotiationStatus)
+  @IsOptional()
+  status?: NegotiationStatus;
+
+  @IsEnum(NegotiationOutcome)
+  @IsOptional()
+  outcome?: NegotiationOutcome;
 }
 
 export class UpdateNegotiationDto {
