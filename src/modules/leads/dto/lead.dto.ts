@@ -70,6 +70,30 @@ export class CreateLeadDto {
   @IsString()
   @IsOptional()
   internalNotes?: string;
+
+  @IsString()
+  @IsOptional()
+  expectedClosureDate?: string;
+
+  @IsNumber()
+  @IsOptional()
+  actualValue?: number;
+
+  @IsString()
+  @IsOptional()
+  competitorInfo?: string;
+
+  @IsString()
+  @IsOptional()
+  decisionMakerName?: string;
+
+  @IsString()
+  @IsOptional()
+  decisionMakerContact?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  isULCCSProject?: boolean;
 }
 
 export class UpdateLeadDto {
@@ -156,6 +180,30 @@ export class UpdateLeadDto {
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
+
+  @IsString()
+  @IsOptional()
+  expectedClosureDate?: string;
+
+  @IsNumber()
+  @IsOptional()
+  actualValue?: number;
+
+  @IsString()
+  @IsOptional()
+  competitorInfo?: string;
+
+  @IsString()
+  @IsOptional()
+  decisionMakerName?: string;
+
+  @IsString()
+  @IsOptional()
+  decisionMakerContact?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  isULCCSProject?: boolean;
 }
 
 export class QualifyLeadDto {
@@ -189,6 +237,76 @@ export class QualifyLeadDto {
   @IsString()
   @IsOptional()
   productInterest?: string;
+
+  @IsString()
+  @IsOptional()
+  expectedClosureDate?: string;
+
+  @IsNumber()
+  @IsOptional()
+  actualValue?: number;
+
+  @IsString()
+  @IsOptional()
+  decisionMakerName?: string;
+
+  @IsString()
+  @IsOptional()
+  decisionMakerContact?: string;
+}
+
+export class RequestQualificationDto {
+  @IsString()
+  qualificationNotes: string;
+
+  @IsNumber()
+  @IsOptional()
+  leadScore?: number;
+
+  @IsString()
+  @IsOptional()
+  industry?: string;
+
+  @IsString()
+  @IsOptional()
+  segment?: string;
+
+  @IsNumber()
+  @IsOptional()
+  estimatedBudget?: number;
+
+  @IsString()
+  @IsOptional()
+  timeline?: string;
+
+  @IsString()
+  @IsOptional()
+  productInterest?: string;
+
+  @IsString()
+  @IsOptional()
+  expectedClosureDate?: string;
+
+  @IsString()
+  @IsOptional()
+  decisionMakerName?: string;
+
+  @IsString()
+  @IsOptional()
+  decisionMakerContact?: string;
+}
+
+export class ApproveQualificationDto {
+  @IsBoolean()
+  approved: boolean;
+
+  @IsString()
+  @IsOptional()
+  comments?: string;
+
+  @IsString()
+  @IsOptional()
+  rejectionReason?: string;
 }
 
 export class FilterLeadsDto {

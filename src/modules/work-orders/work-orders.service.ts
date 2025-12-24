@@ -1,9 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { WorkOrder } from '../../entities';
+import { WorkOrder, AgreementType, PaymentTerms } from '../../entities';
 import { CreateWorkOrderDto, UpdateWorkOrderDto } from './dto/work-order.dto';
 import { LeadsService } from '../leads/leads.service';
+import { AgreementsService } from '../agreements/agreements.service';
+import { ComprehensiveNotificationsService } from '../notifications/comprehensive-notifications.service';
 
 @Injectable()
 export class WorkOrdersService {
@@ -11,6 +13,8 @@ export class WorkOrdersService {
     @InjectRepository(WorkOrder)
     private workOrdersRepository: Repository<WorkOrder>,
     private leadsService: LeadsService,
+    private agreementsService: AgreementsService,
+    private notificationsService: ComprehensiveNotificationsService,
   ) {}
 
   async create(createWorkOrderDto: CreateWorkOrderDto): Promise<WorkOrder> {
@@ -36,8 +40,44 @@ export class WorkOrdersService {
 
     // Mark lead as converted
     await this.leadsService.convertToWon(createWorkOrderDto.leadId);
+    
+    // Send lead won notification
+    try {
+      const lead = await this.leadsService.findOne(createWorkOrderDto.leadId);
+      await this.notificationsService.notifyLeadWon(
+        createWorkOrderDto.leadId,
+        lead.organization || lead.name,
+        savedWorkOrder.id,
+      );
+    } catch (error) {
+      console.error('Failed to send notification:', error);
+    }
+
+    // Phase 2: Auto-create Agreement when Work Order is created
+    if (createWorkOrderDto.createdById) {
+      await this.createAgreementFromWorkOrder(savedWorkOrder, createWorkOrderDto.createdById);
+    }
 
     return this.findOne(savedWorkOrder.id);
+  }
+
+  // Phase 2: Auto-create Agreement
+  private async createAgreementFromWorkOrder(workOrder: WorkOrder, userId: string): Promise<void> {
+    try {
+      await this.agreementsService.create({
+        leadId: workOrder.leadId,
+        title: `Agreement for ${workOrder.title}`,
+        description: workOrder.description,
+        agreementType: AgreementType.CONTRACT,
+        contractValue: workOrder.orderValue,
+        paymentTerms: PaymentTerms.NET_30,
+        scopeOfWork: workOrder.description,
+        assignedToId: workOrder.assignedToOperationsId,
+      }, userId);
+    } catch (error) {
+      // Log error but don't fail work order creation
+      console.error('Failed to auto-create agreement:', error);
+    }
   }
 
   async findAll(): Promise<{ data: WorkOrder[]; total: number; page: number; limit: number }> {

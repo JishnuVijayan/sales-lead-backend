@@ -1,11 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, forwardRef, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Proposal, ProposalItem, ProposalStatus, UserRole } from '../../entities';
+import { Proposal, ProposalItem, ProposalStatus, UserRole, ApprovalContext } from '../../entities';
 import { CreateProposalDto, UpdateProposalDto } from './dto/proposal.dto';
 import { LeadsService } from '../leads/leads.service';
 import { UsersService } from '../users/users.service';
 import { PdfService } from '../../services/pdf.service';
+import { ApprovalsService } from '../approvals/approvals.service';
 
 @Injectable()
 export class ProposalsService {
@@ -14,9 +15,11 @@ export class ProposalsService {
     private proposalsRepository: Repository<Proposal>,
     @InjectRepository(ProposalItem)
     private proposalItemsRepository: Repository<ProposalItem>,
+    @Inject(forwardRef(() => LeadsService))
     private leadsService: LeadsService,
     private usersService: UsersService,
     private pdfService: PdfService,
+    private approvalsService: ApprovalsService,
   ) {}
 
   async create(createProposalDto: CreateProposalDto, userId: string): Promise<Proposal> {
@@ -254,5 +257,83 @@ export class ProposalsService {
     }
     
     return false;
+  }
+
+  // Phase 2: Multi-level approval workflow
+  async sendForApproval(id: string, userId: string): Promise<Proposal> {
+    const proposal = await this.findOne(id);
+
+    if (proposal.status !== ProposalStatus.DRAFT) {
+      throw new BadRequestException('Only draft proposals can be sent for approval');
+    }
+
+    // Define approval workflow based on proposal value
+    const approvalStages: Array<{ stage: any; approverRole: string; isMandatory: boolean; sequenceOrder: number }> = [];
+    const value = proposal.totalAmount;
+
+    // Account Manager approval (always required)
+    approvalStages.push({ stage: 'Account Manager', approverRole: UserRole.ACCOUNT_MANAGER, isMandatory: true, sequenceOrder: 1 });
+
+    // Finance approval for all proposals
+    approvalStages.push({ stage: 'Finance', approverRole: UserRole.FINANCE, isMandatory: true, sequenceOrder: 2 });
+
+    // Procurement approval for proposals > 50000
+    if (value > 50000) {
+      approvalStages.push({ stage: 'Procurement', approverRole: UserRole.PROCUREMENT, isMandatory: true, sequenceOrder: 3 });
+    }
+
+    // Delivery Manager approval for proposals > 100000
+    if (value > 100000) {
+      approvalStages.push({ stage: 'Delivery Manager', approverRole: UserRole.DELIVERY_MANAGER, isMandatory: true, sequenceOrder: 4 });
+    }
+
+    // CEO approval for proposals > 500000
+    if (value > 500000) {
+      approvalStages.push({ stage: 'CEO', approverRole: UserRole.CEO, isMandatory: true, sequenceOrder: 5 });
+    }
+
+    // ULCCS approval for proposals > 1000000
+    if (value > 1000000) {
+      approvalStages.push({ stage: 'ULCCS', approverRole: UserRole.ULCCS_APPROVER, isMandatory: true, sequenceOrder: 6 });
+    }
+
+    // Create approval workflow
+    await this.approvalsService.createApprovalWorkflow({
+      context: ApprovalContext.PROPOSAL,
+      entityId: proposal.id,
+      leadId: proposal.leadId,
+      stages: approvalStages,
+    });
+
+    // Update proposal status
+    proposal.status = ProposalStatus.SENT;
+    proposal.sentDate = new Date();
+    await this.proposalsRepository.save(proposal);
+
+    return proposal;
+  }
+
+  async checkApprovalStatus(id: string): Promise<{ allApproved: boolean; pendingStage?: string }> {
+    const allApproved = await this.approvalsService.areAllApprovalsCompleted(
+      ApprovalContext.PROPOSAL,
+      id
+    );
+
+    if (allApproved) {
+      // Move proposal to Accepted status
+      const proposal = await this.findOne(id);
+      proposal.status = ProposalStatus.ACCEPTED;
+      await this.proposalsRepository.save(proposal);
+    }
+
+    const pendingApproval = await this.approvalsService.getNextPendingApproval(
+      ApprovalContext.PROPOSAL,
+      id
+    );
+
+    return {
+      allApproved,
+      pendingStage: pendingApproval?.stage,
+    };
   }
 }

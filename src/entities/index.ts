@@ -6,3 +6,8 @@ export { ProposalItem } from './proposal-item.entity';
 export { WorkOrder, WorkOrderStatus } from './work-order.entity';
 export { Document, DocumentType } from './document.entity';
 export { Negotiation, NegotiationStatus, NegotiationOutcome } from './negotiation.entity';
+export { Approval, ApprovalStatus, ApprovalStage, ApprovalContext } from './approval.entity';
+export { Agreement, AgreementStage, AgreementType, PaymentTerms } from './agreement.entity';
+export { AgreementStageHistory } from './agreement-stage-history.entity';
+export { SLAConfig, SLAStageType } from './sla-config.entity';
+export { Notification, NotificationType, NotificationStatus } from './notification.entity';

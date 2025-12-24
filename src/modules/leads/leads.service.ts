@@ -1,9 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like, Between, MoreThan, LessThan } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { Lead, LeadStatus, LeadAgingStatus } from '../../entities';
 import { CreateLeadDto, UpdateLeadDto, QualifyLeadDto, FilterLeadsDto } from './dto/lead.dto';
+import { RequestQualificationDto, ApproveQualificationDto } from './dto/lead.dto';
+import { ComprehensiveNotificationsService } from '../notifications/comprehensive-notifications.service';
 
 @Injectable()
 export class LeadsService {
@@ -11,6 +13,7 @@ export class LeadsService {
     @InjectRepository(Lead)
     private leadsRepository: Repository<Lead>,
     private configService: ConfigService,
+    private notificationsService: ComprehensiveNotificationsService,
   ) {}
 
   async create(createLeadDto: CreateLeadDto, userId: string): Promise<Lead> {
@@ -22,7 +25,17 @@ export class LeadsService {
       createdById: userId,
     });
 
-    return await this.leadsRepository.save(lead);
+    const savedLead = await this.leadsRepository.save(lead);
+    
+    // Send in-app notification
+    try {
+      await this.notificationsService.notifyLeadCreated(savedLead.id, userId);
+    } catch (error) {
+      // Log error but don't fail lead creation
+      console.error('Failed to send notification:', error);
+    }
+
+    return savedLead;
   }
 
   async findAll(filterDto: FilterLeadsDto): Promise<{ data: Lead[]; total: number; page: number; limit: number }> {
@@ -30,6 +43,7 @@ export class LeadsService {
 
     const query = this.leadsRepository.createQueryBuilder('lead')
       .leftJoinAndSelect('lead.assignedTo', 'assignedTo')
+      .leftJoinAndSelect('lead.createdBy', 'createdBy')
       .orderBy('lead.createdDate', 'DESC');
 
     if (status) {
@@ -81,7 +95,7 @@ export class LeadsService {
   async findOne(id: string): Promise<Lead> {
     const lead = await this.leadsRepository.findOne({
       where: { id },
-      relations: ['assignedTo', 'activities', 'proposals', 'documents', 'workOrders'],
+      relations: ['assignedTo', 'createdBy', 'activities', 'proposals', 'documents', 'workOrders'],
     });
 
     if (!lead) {
@@ -103,7 +117,7 @@ export class LeadsService {
     return await this.leadsRepository.save(updatedLead);
   }
 
-  async qualify(id: string, qualifyDto: QualifyLeadDto): Promise<Lead> {
+  async qualify(id: string, qualifyDto: QualifyLeadDto, userId?: string): Promise<Lead> {
     const lead = await this.findOne(id);
 
     const updatedLead = this.leadsRepository.merge(lead, {
@@ -113,7 +127,16 @@ export class LeadsService {
       lastActionDate: new Date(),
     });
 
-    return await this.leadsRepository.save(updatedLead);
+    const savedLead = await this.leadsRepository.save(updatedLead);
+    
+    // Send in-app notification
+    try {
+      await this.notificationsService.notifyLeadQualified(savedLead.id, userId || savedLead.createdById);
+    } catch (error) {
+      console.error('Failed to send notification:', error);
+    }
+
+    return savedLead;
   }
 
   async convertToWon(id: string): Promise<Lead> {
@@ -126,7 +149,12 @@ export class LeadsService {
     lead.wonDate = new Date();
     lead.lastActionDate = new Date();
 
-    return await this.leadsRepository.save(lead);
+    const savedLead = await this.leadsRepository.save(lead);
+    
+    // Note: notifyLeadWon will be called from work-orders service
+    // when work order is created with the workOrderId
+
+    return savedLead;
   }
 
   async markAsLost(id: string, reason?: string): Promise<Lead> {
@@ -300,6 +328,45 @@ export class LeadsService {
       agingStatus,
       stageAging,
     };
+  }
+
+  // Phase 2: New workflow methods
+  async requestQualification(id: string, requestDto: RequestQualificationDto, userId: string): Promise<Lead> {
+    const lead = await this.findOne(id);
+
+    if (lead.status !== LeadStatus.NEW) {
+      throw new BadRequestException('Only NEW leads can request qualification');
+    }
+
+    const updatedLead = this.leadsRepository.merge(lead, {
+      ...requestDto,
+      qualificationStatus: 'Pending',
+      lastActionDate: new Date(),
+    });
+
+    return await this.leadsRepository.save(updatedLead);
+  }
+
+  async approveQualification(id: string, approvalDto: ApproveQualificationDto, userId: string): Promise<Lead> {
+    const lead = await this.findOne(id);
+
+    if (lead.qualificationStatus !== 'Pending') {
+      throw new BadRequestException('Lead is not pending qualification approval');
+    }
+
+    if (approvalDto.approved) {
+      lead.qualificationStatus = 'Approved';
+      lead.status = LeadStatus.QUALIFIED;
+      lead.qualifiedDate = new Date();
+      lead.qualifiedById = userId;
+    } else {
+      lead.qualificationStatus = 'Rejected';
+      lead.rejectionReason = approvalDto.rejectionReason || approvalDto.comments || '';
+    }
+
+    lead.lastActionDate = new Date();
+
+    return await this.leadsRepository.save(lead);
   }
 
   async remove(id: string): Promise<void> {

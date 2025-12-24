@@ -28,7 +28,7 @@ export class UsersController {
     // Set default role for new users
     const createUserDto: CreateUserDto = {
       ...signupDto,
-      role: UserRole.SALES_EXECUTIVE, // Default role for new signups
+      role: UserRole.ACCOUNT_MANAGER, // Default role for new signups
     };
 
     const user = await this.usersService.create(createUserDto);
@@ -64,7 +64,7 @@ export class UsersController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.ACCOUNT_MANAGER, UserRole.SALES_MANAGER, UserRole.DELIVERY_MANAGER, UserRole.FINANCE, UserRole.PROCUREMENT)
   @Get()
   findAll() {
     return this.usersService.findAll();

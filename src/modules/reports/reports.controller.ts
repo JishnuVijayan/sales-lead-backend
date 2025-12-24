@@ -66,4 +66,54 @@ export class ReportsController {
     const end = endDate ? new Date(endDate) : undefined;
     return this.reportsService.getDetailedReport(start, end);
   }
+
+  @Get('lead-aging')
+  async getLeadAgingSummary(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    const start = startDate ? new Date(startDate) : undefined;
+    const end = endDate ? new Date(endDate) : undefined;
+    return this.reportsService.getLeadAgingSummary(start, end);
+  }
+
+  @Get('stage-time-analysis')
+  async getStageTimeAnalysis(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    const start = startDate ? new Date(startDate) : undefined;
+    const end = endDate ? new Date(endDate) : undefined;
+    return this.reportsService.getStageTimeAnalysis(start, end);
+  }
+
+  @Get('agreement-cycle-time')
+  async getAgreementCycleTime(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    const start = startDate ? new Date(startDate) : undefined;
+    const end = endDate ? new Date(endDate) : undefined;
+    return this.reportsService.getAgreementCycleTime(start, end);
+  }
+
+  @Get('sla-performance')
+  async getSLAPerformanceByDepartment(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    const start = startDate ? new Date(startDate) : undefined;
+    const end = endDate ? new Date(endDate) : undefined;
+    return this.reportsService.getSLAPerformanceByDepartment(start, end);
+  }
+
+  @Get('value-comparison')
+  async getValueComparison(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    const start = startDate ? new Date(startDate) : undefined;
+    const end = endDate ? new Date(endDate) : undefined;
+    return this.reportsService.getValueComparison(start, end);
+  }
 }

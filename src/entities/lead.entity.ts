@@ -138,6 +138,10 @@ export class Lead {
   @Column({ default: false })
   isActive: boolean;
 
+  // Module 12: ULCCS Project flag
+  @Column({ default: false })
+  isULCCSProject: boolean;
+
   // Stage transition timestamps for aging calculations
   @Column({ name: 'qualified_date', type: 'timestamp', nullable: true })
   qualifiedDate: Date;
@@ -156,6 +160,35 @@ export class Lead {
 
   @Column({ name: 'dormant_date', type: 'timestamp', nullable: true })
   dormantDate: Date;
+
+  // Phase 2: New fields for enhanced workflow
+  @Column({ name: 'qualification_status', nullable: true })
+  qualificationStatus: string; // 'Pending', 'Approved', 'Rejected'
+
+  @Column({ name: 'qualified_by', nullable: true })
+  qualifiedById: string;
+
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'qualified_by' })
+  qualifiedBy: User;
+
+  @Column({ name: 'rejection_reason', type: 'text', nullable: true })
+  rejectionReason: string;
+
+  @Column({ name: 'expected_closure_date', type: 'date', nullable: true })
+  expectedClosureDate: Date;
+
+  @Column({ name: 'actual_value', type: 'decimal', precision: 15, scale: 2, nullable: true })
+  actualValue: number;
+
+  @Column({ name: 'competitor_info', type: 'text', nullable: true })
+  competitorInfo: string;
+
+  @Column({ name: 'decision_maker_name', nullable: true })
+  decisionMakerName: string;
+
+  @Column({ name: 'decision_maker_contact', nullable: true })
+  decisionMakerContact: string;
 
   @OneToMany(() => LeadActivity, activity => activity.lead)
   activities: LeadActivity[];

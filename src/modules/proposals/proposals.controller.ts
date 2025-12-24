@@ -60,6 +60,18 @@ export class ProposalsController {
     res.send(pdfBuffer);
   }
 
+  // Phase 2: Multi-level approval workflow
+  @Post(':id/send-for-approval')
+  @HttpCode(HttpStatus.OK)
+  sendForApproval(@Param('id') id: string, @Request() req: any) {
+    return this.proposalsService.sendForApproval(id, req.user.userId);
+  }
+
+  @Get(':id/approval-status')
+  checkApprovalStatus(@Param('id') id: string) {
+    return this.proposalsService.checkApprovalStatus(id);
+  }
+
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id') id: string) {

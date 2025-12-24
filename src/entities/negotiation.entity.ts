@@ -95,4 +95,44 @@ export class Negotiation {
 
   @Column({ type: 'int', nullable: true })
   negotiationDuration: number; // in days
+
+  // Phase 2 Module 2.5: Revision tracking
+  @Column({ type: 'int', default: 1 })
+  revisionNumber: number;
+
+  @Column({ type: 'boolean', default: false })
+  requiresApproval: boolean;
+
+  @Column({
+    type: 'enum',
+    enum: ['Pending', 'Approved', 'Rejected'],
+    nullable: true,
+  })
+  revisionStatus: string;
+
+  @ManyToOne(() => User, { nullable: true, eager: true })
+  @JoinColumn({ name: 'revision_requested_by_id' })
+  revisionRequestedBy: User;
+
+  @Column({ name: 'revision_requested_by_id', nullable: true })
+  revisionRequestedById: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  revisionRequestedDate: Date;
+
+  @ManyToOne(() => User, { nullable: true, eager: true })
+  @JoinColumn({ name: 'revision_approved_by_id' })
+  revisionApprovedBy: User;
+
+  @Column({ name: 'revision_approved_by_id', nullable: true })
+  revisionApprovedById: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  revisionApprovedDate: Date;
+
+  @Column('text', { nullable: true })
+  revisionReason: string;
+
+  @Column('text', { nullable: true })
+  revisionNotes: string;
 }
