@@ -22,6 +22,10 @@ export class CreateActivityDto {
   @IsUUID()
   @IsOptional()
   createdById?: string;
+
+  @IsUUID()
+  @IsOptional()
+  assignedToId?: string;
 }
 
 export class UpdateActivityDto {

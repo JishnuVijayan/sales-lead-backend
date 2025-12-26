@@ -84,6 +84,18 @@ export class Approval {
   @Column({ name: 'sequence_order' })
   sequenceOrder: number;
 
+  @Column({ type: 'boolean', default: false })
+  isCustomFlow: boolean;
+
+  @Column({ name: 'department_id', nullable: true })
+  departmentId: string;
+
+  @Column({ name: 'custom_approver_name', nullable: true })
+  customApproverName: string;
+
+  @Column({ name: 'created_by_user_id', nullable: true })
+  createdByUserId: string;
+
   @CreateDateColumn({ name: 'created_date' })
   createdDate: Date;
 

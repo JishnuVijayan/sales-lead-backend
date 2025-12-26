@@ -86,6 +86,24 @@ export class Proposal {
   @CreateDateColumn({ name: 'created_date' })
   createdDate: Date;
 
+  @Column({ name: 'current_document_id', nullable: true })
+  currentDocumentId: string;
+
+  @Column({ name: 'final_document_id', nullable: true })
+  finalDocumentId: string;
+
+  @Column({ type: 'boolean', default: false })
+  hasCustomApprovalFlow: boolean;
+
   @OneToMany(() => ProposalItem, item => item.proposal, { cascade: true })
   items: ProposalItem[];
+
+  @OneToMany('ProposalDocument', 'proposal')
+  proposalDocuments: any[];
+
+  @OneToMany('ProposalActivity', 'proposal')
+  activities: any[];
+
+  @OneToMany('ProposalApprovalConfig', 'proposal')
+  approvalConfigs: any[];
 }

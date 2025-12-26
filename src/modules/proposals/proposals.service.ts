@@ -1,12 +1,13 @@
 import { Injectable, NotFoundException, BadRequestException, forwardRef, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Proposal, ProposalItem, ProposalStatus, UserRole, ApprovalContext } from '../../entities';
+import { Proposal, ProposalItem, ProposalStatus, UserRole, ApprovalContext, ApprovalType } from '../../entities';
 import { CreateProposalDto, UpdateProposalDto } from './dto/proposal.dto';
 import { LeadsService } from '../leads/leads.service';
 import { UsersService } from '../users/users.service';
 import { PdfService } from '../../services/pdf.service';
 import { ApprovalsService } from '../approvals/approvals.service';
+import { ProposalApprovalConfigsService } from '../proposal-approval-configs/proposal-approval-configs.service';
 
 @Injectable()
 export class ProposalsService {
@@ -20,6 +21,7 @@ export class ProposalsService {
     private usersService: UsersService,
     private pdfService: PdfService,
     private approvalsService: ApprovalsService,
+    private proposalApprovalConfigsService: ProposalApprovalConfigsService,
   ) {}
 
   async create(createProposalDto: CreateProposalDto, userId: string): Promise<Proposal> {
@@ -267,34 +269,67 @@ export class ProposalsService {
       throw new BadRequestException('Only draft proposals can be sent for approval');
     }
 
-    // Define approval workflow based on proposal value
-    const approvalStages: Array<{ stage: any; approverRole: string; isMandatory: boolean; sequenceOrder: number }> = [];
-    const value = proposal.totalAmount;
+    // Check if there's a custom approval flow defined
+    const customApprovalConfigs = await this.proposalApprovalConfigsService.findByProposal(id);
+    
+    let approvalStages: Array<{ stage: any; approverRole: string; approverId?: string; isMandatory: boolean; sequenceOrder: number }> = [];
 
-    // Account Manager approval (always required)
-    approvalStages.push({ stage: 'Account Manager', approverRole: UserRole.ACCOUNT_MANAGER, isMandatory: true, sequenceOrder: 1 });
+    if (customApprovalConfigs && customApprovalConfigs.length > 0) {
+      // Use custom approval flow
+      for (const config of customApprovalConfigs) {
+        // Get the approver role - if specific user, use their role; otherwise use the role from config
+        let approverRole: string;
+        
+        if (config.approvalType === ApprovalType.SPECIFIC_USER && config.approver) {
+          approverRole = config.approver.role || UserRole.ACCOUNT_MANAGER;
+        } else if (config.approverRole) {
+          approverRole = config.approverRole;
+        } else {
+          approverRole = UserRole.ACCOUNT_MANAGER; // Default fallback
+        }
 
-    // Finance approval for all proposals
-    approvalStages.push({ stage: 'Finance', approverRole: UserRole.FINANCE, isMandatory: true, sequenceOrder: 2 });
+        const stage: any = {
+          stage: approverRole, // Use the enum value, not a formatted string
+          approverRole: approverRole,
+          isMandatory: config.isMandatory,
+          sequenceOrder: config.sequenceOrder,
+        };
 
-    // Procurement approval for proposals > 50000
-    if (value > 50000) {
-      approvalStages.push({ stage: 'Procurement', approverRole: UserRole.PROCUREMENT, isMandatory: true, sequenceOrder: 3 });
-    }
+        if (config.approvalType === ApprovalType.SPECIFIC_USER && config.approverId) {
+          stage.approverId = config.approverId;
+        }
 
-    // Delivery Manager approval for proposals > 100000
-    if (value > 100000) {
-      approvalStages.push({ stage: 'Delivery Manager', approverRole: UserRole.DELIVERY_MANAGER, isMandatory: true, sequenceOrder: 4 });
-    }
+        approvalStages.push(stage);
+      }
+    } else {
+      // Use default approval workflow based on proposal value
+      const value = proposal.totalAmount;
 
-    // CEO approval for proposals > 500000
-    if (value > 500000) {
-      approvalStages.push({ stage: 'CEO', approverRole: UserRole.CEO, isMandatory: true, sequenceOrder: 5 });
-    }
+      // Account Manager approval (always required)
+      approvalStages.push({ stage: 'Account Manager', approverRole: UserRole.ACCOUNT_MANAGER, isMandatory: true, sequenceOrder: 1 });
 
-    // ULCCS approval for proposals > 1000000
-    if (value > 1000000) {
-      approvalStages.push({ stage: 'ULCCS', approverRole: UserRole.ULCCS_APPROVER, isMandatory: true, sequenceOrder: 6 });
+      // Finance approval for all proposals
+      approvalStages.push({ stage: 'Finance', approverRole: UserRole.FINANCE, isMandatory: true, sequenceOrder: 2 });
+
+      // Procurement approval for proposals > 50000
+      if (value > 50000) {
+        approvalStages.push({ stage: 'Procurement', approverRole: UserRole.PROCUREMENT, isMandatory: true, sequenceOrder: 3 });
+      }
+
+      // Delivery Manager approval for proposals > 100000
+      if (value > 100000) {
+        approvalStages.push({ stage: 'Delivery Manager', approverRole: UserRole.DELIVERY_MANAGER, isMandatory: true, sequenceOrder: 4 });
+      }
+
+      // CEO approval for proposals > 500000
+      if (value > 500000) {
+        approvalStages.push({ stage: 'CEO', approverRole: UserRole.CEO, isMandatory: true, sequenceOrder: 5 });
+      }
+
+      // ULCCS approval for proposals > 1000000
+      if (value > 1000000) {
+        approvalStages.push({ stage: 'ULCCS', approverRole: UserRole.ULCCS_APPROVER, isMandatory: true, sequenceOrder: 6 });
+      }
     }
 
     // Create approval workflow

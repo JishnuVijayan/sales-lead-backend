@@ -25,7 +25,7 @@ export class ActivitiesService {
 
   async findAll(): Promise<{ data: LeadActivity[]; total: number; page: number; limit: number }> {
     const [activities, total] = await this.activitiesRepository.findAndCount({
-      relations: ['lead', 'createdBy'],
+      relations: ['lead', 'createdBy', 'assignedTo'],
       order: { createdDate: 'DESC' },
     });
 
@@ -40,7 +40,7 @@ export class ActivitiesService {
   async findByLead(leadId: string): Promise<LeadActivity[]> {
     return await this.activitiesRepository.find({
       where: { leadId },
-      relations: ['createdBy'],
+      relations: ['createdBy', 'assignedTo'],
       order: { createdDate: 'DESC' },
     });
   }

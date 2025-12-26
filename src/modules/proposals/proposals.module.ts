@@ -6,6 +6,7 @@ import { ProposalsController } from './proposals.controller';
 import { LeadsModule } from '../leads/leads.module';
 import { UsersModule } from '../users/users.module';
 import { ApprovalsModule } from '../approvals/approvals.module';
+import { ProposalApprovalConfigsModule } from '../proposal-approval-configs/proposal-approval-configs.module';
 import { PdfService } from '../../services/pdf.service';
 
 @Module({
@@ -13,7 +14,8 @@ import { PdfService } from '../../services/pdf.service';
     TypeOrmModule.forFeature([Proposal, ProposalItem]), 
     forwardRef(() => LeadsModule), 
     UsersModule,
-    ApprovalsModule
+    ApprovalsModule,
+    ProposalApprovalConfigsModule
   ],
   controllers: [ProposalsController],
   providers: [ProposalsService, PdfService],

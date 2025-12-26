@@ -52,6 +52,13 @@ export class LeadActivity {
   @Column({ name: 'created_by', nullable: true })
   createdById: string;
 
+  @ManyToOne(() => User, { nullable: true, eager: true })
+  @JoinColumn({ name: 'assigned_to' })
+  assignedTo: User;
+
+  @Column({ name: 'assigned_to', nullable: true })
+  assignedToId: string;
+
   @CreateDateColumn({ name: 'created_date' })
   createdDate: Date;
 
