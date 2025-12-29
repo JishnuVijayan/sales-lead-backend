@@ -4,7 +4,12 @@ import { Repository } from 'typeorm';
 import { Agreement, AgreementStage } from '../../entities/agreement.entity';
 import { AgreementStageHistory } from '../../entities/agreement-stage-history.entity';
 import { Lead } from '../../entities/lead.entity';
+import { User, UserRole } from '../../entities/user.entity';
+import { ApprovalContext, ApprovalStatus } from '../../entities/approval.entity';
 import { CreateAgreementDto, UpdateAgreementDto, ChangeStageDto, SignAgreementDto, TerminateAgreementDto } from './dto/agreement.dto';
+import { AgreementApprovalConfigsService } from '../agreement-approval-configs/agreement-approval-configs.service';
+import { ApprovalsService } from '../approvals/approvals.service';
+import { ApprovalType } from '../../entities/agreement-approval-config.entity';
 
 @Injectable()
 export class AgreementsService {
@@ -15,6 +20,8 @@ export class AgreementsService {
     private stageHistoryRepository: Repository<AgreementStageHistory>,
     @InjectRepository(Lead)
     private leadsRepository: Repository<Lead>,
+    private agreementApprovalConfigsService: AgreementApprovalConfigsService,
+    private approvalsService: ApprovalsService,
   ) {}
 
   async create(createAgreementDto: CreateAgreementDto, userId: string): Promise<Agreement> {
@@ -822,6 +829,216 @@ export class AgreementsService {
       createdDate: agreement.createdDate,
       isSigned: agreement.stage === AgreementStage.SIGNED || agreement.stage === AgreementStage.ACTIVE,
     };
+  }
+
+  // Send agreement for approval workflow
+  async sendForApproval(id: string, userId: string): Promise<Agreement> {
+    const agreement = await this.findOne(id);
+
+    // Validate agreement is in draft stage
+    if (agreement.stage !== AgreementStage.DRAFT) {
+      throw new BadRequestException('Only draft agreements can be sent for approval');
+    }
+
+    // Check if approval already in progress
+    if (agreement.approvalInProgress) {
+      throw new BadRequestException('Approval workflow already in progress');
+    }
+
+    // Clean up any existing approvals for this agreement (in case of previous failed attempts)
+    await this.approvalsService.deleteByEntity(ApprovalContext.AGREEMENT, id);
+
+    // Check if custom approval flow is defined
+    if (!agreement.hasCustomApprovalFlow) {
+      throw new BadRequestException('No custom approval flow defined. Please configure approval flow first.');
+    }
+
+    // Fetch custom approval configs
+    const approvalConfigs = await this.agreementApprovalConfigsService.findByAgreement(id);
+    
+    if (!approvalConfigs || approvalConfigs.length === 0) {
+      throw new BadRequestException('No approval configurations found');
+    }
+
+    // Sort by sequence order
+    const sortedConfigs = approvalConfigs.sort((a, b) => a.sequenceOrder - b.sequenceOrder);
+
+    // Clean up any existing approvals for this agreement before creating new ones
+    await this.approvalsService.deleteByEntity(ApprovalContext.AGREEMENT, id);
+
+    // Map approval configs to approval stages
+    const approvalStages = sortedConfigs.map((config, index) => {
+      let approverRole: string;
+      
+      if (config.approvalType === ApprovalType.SPECIFIC_USER && config.approver) {
+        approverRole = config.approver.role || UserRole.ACCOUNT_MANAGER;
+      } else if (config.approverRole) {
+        approverRole = config.approverRole;
+      } else {
+        approverRole = UserRole.ACCOUNT_MANAGER; // Default fallback
+      }
+
+      const stage: any = {
+        stage: approverRole,
+        approverRole: approverRole,
+        isMandatory: config.isMandatory,
+        sequenceOrder: config.sequenceOrder,
+      };
+
+      if (config.approvalType === ApprovalType.SPECIFIC_USER && config.approverId) {
+        stage.approverId = config.approverId;
+      }
+
+      return stage;
+    });
+
+    // Create approval workflow
+    await this.approvalsService.createApprovalWorkflow({
+      context: ApprovalContext.AGREEMENT,
+      entityId: agreement.id,
+      leadId: agreement.leadId,
+      stages: approvalStages,
+    });
+
+    // Update agreement status - keep stage as DRAFT during custom approval
+    agreement.approvalInProgress = true;
+    await this.agreementsRepository.save(agreement);
+
+    // Create stage history
+    const firstApprover = approvalStages[0];
+    await this.createStageHistory(
+      agreement.id,
+      AgreementStage.DRAFT,
+      AgreementStage.DRAFT,
+      `Submitted for approval - pending ${firstApprover.approverRole}`,
+      userId,
+    );
+
+    return agreement;
+  }
+
+  // Check approval status
+  async checkApprovalStatus(id: string): Promise<{ inProgress: boolean; allApproved: boolean; pendingApprovals: any[] }> {
+    const agreement = await this.findOne(id);
+    
+    if (!agreement.approvalInProgress) {
+      return {
+        inProgress: false,
+        allApproved: false,
+        pendingApprovals: [],
+      };
+    }
+
+    const approvals = await this.approvalsService.findByEntity(ApprovalContext.AGREEMENT, id);
+    const pendingApprovals = approvals.filter(a => a.status === 'Pending');
+    const allApproved = approvals.length > 0 && pendingApprovals.length === 0;
+
+    return {
+      inProgress: agreement.approvalInProgress,
+      allApproved,
+      pendingApprovals: pendingApprovals.map(a => ({
+        id: a.id,
+        stage: a.stage,
+        approverRole: a.approverRole,
+        approverName: a.approver?.name || a.approverRole,
+        sequenceOrder: a.sequenceOrder,
+      })),
+    };
+  }
+
+  // Return agreement to sales team
+  async returnToCreator(id: string, userId: string, reason: string): Promise<Agreement> {
+    const agreement = await this.findOne(id);
+
+    if (!agreement.approvalInProgress) {
+      throw new BadRequestException('No approval workflow in progress');
+    }
+
+    // Get all approvals for this agreement
+    const approvals = await this.approvalsService.findByEntity(ApprovalContext.AGREEMENT, id);
+
+    // Find the approval being returned
+    const currentApproval = approvals.find(a => a.status === ApprovalStatus.PENDING);
+    if (currentApproval) {
+      await this.approvalsService.returnToCreator(currentApproval.id, userId, reason);
+    }
+
+    // Skip all subsequent pending approvals
+    for (const approval of approvals) {
+      if (approval.status === ApprovalStatus.PENDING && approval.id !== currentApproval?.id) {
+        await this.approvalsService.skipApproval(approval.id, userId, `Skipped due to return: ${reason}`);
+      }
+    }
+
+    // Reset agreement to draft
+    agreement.approvalInProgress = false;
+    agreement.stage = AgreementStage.DRAFT;
+    await this.agreementsRepository.save(agreement);
+
+    // Create stage history
+    await this.createStageHistory(
+      agreement.id,
+      agreement.stage,
+      AgreementStage.DRAFT,
+      `Returned to ${agreement.createdBy?.role || 'creator'}: ${reason}`,
+      userId,
+    );
+
+    return agreement;
+  }
+
+  // Update agreement stage after approval action
+  async updateStageAfterApproval(id: string, userId: string): Promise<Agreement> {
+    const agreement = await this.findOne(id);
+
+    if (!agreement.approvalInProgress) {
+      return agreement;
+    }
+
+    const approvals = await this.approvalsService.findByEntity(ApprovalContext.AGREEMENT, id);
+    
+    // Check if any approval was rejected
+    const rejectedApproval = approvals.find(a => a.status === ApprovalStatus.REJECTED);
+    if (rejectedApproval) {
+      // If rejected, return to draft
+      const oldStage = agreement.stage;
+      agreement.stage = AgreementStage.DRAFT;
+      agreement.approvalInProgress = false;
+      await this.agreementsRepository.save(agreement);
+      
+      await this.createStageHistory(
+        agreement.id,
+        oldStage,
+        AgreementStage.DRAFT,
+        `Approval rejected by ${rejectedApproval.approver?.name || rejectedApproval.approverRole}`,
+        userId,
+      );
+      
+      return agreement;
+    }
+
+    // Check if all mandatory approvals are completed
+    const allApproved = await this.approvalsService.areAllApprovalsCompleted(ApprovalContext.AGREEMENT, id);
+    
+    if (allApproved) {
+      // All approvals completed - move to Pending Signature
+      const oldStage = agreement.stage;
+      agreement.stage = AgreementStage.PENDING_SIGNATURE;
+      agreement.approvalInProgress = false;
+      await this.agreementsRepository.save(agreement);
+      
+      await this.createStageHistory(
+        agreement.id,
+        oldStage,
+        AgreementStage.PENDING_SIGNATURE,
+        'All approvals completed',
+        userId,
+      );
+    }
+    // Note: For custom approval workflows, we keep the stage as DRAFT during approvals
+    // The approval progress is tracked via the approvalInProgress flag and Approval entities
+
+    return agreement;
   }
 }
 

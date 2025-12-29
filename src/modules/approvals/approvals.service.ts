@@ -135,8 +135,8 @@ export class ApprovalsService {
     }
 
     // Validate status
-    if (![ApprovalStatus.APPROVED, ApprovalStatus.REJECTED].includes(respondDto.status)) {
-      throw new BadRequestException('Status must be Approved or Rejected');
+    if (![ApprovalStatus.APPROVED, ApprovalStatus.REJECTED, ApprovalStatus.RETURNED].includes(respondDto.status)) {
+      throw new BadRequestException('Status must be Approved, Rejected, or Returned');
     }
 
     // Update approval
@@ -144,8 +144,45 @@ export class ApprovalsService {
     if (respondDto.comments) {
       approval.comments = respondDto.comments;
     }
+    
+    // Save attachments if provided
+    if (respondDto.attachments && respondDto.attachments.length > 0) {
+      approval.attachments = respondDto.attachments.map(att => ({
+        fileName: att.fileName,
+        filePath: att.filePath,
+        uploadedAt: new Date(),
+        uploadedBy: userId,
+      }));
+    }
+    
     approval.approverId = userId;
     approval.respondedDate = new Date();
+
+    return await this.approvalsRepository.save(approval);
+  }
+
+  /**
+   * Return approval to creator
+   */
+  async returnToCreator(
+    approvalId: string,
+    userId: string,
+    reason: string
+  ): Promise<Approval> {
+    const approval = await this.approvalsRepository.findOne({
+      where: { id: approvalId },
+      relations: ['approver'],
+    });
+
+    if (!approval) {
+      throw new NotFoundException('Approval not found');
+    }
+
+    // Mark current approval as returned
+    approval.status = ApprovalStatus.RETURNED;
+    approval.comments = reason;
+    approval.respondedDate = new Date();
+    approval.approverId = userId;
 
     return await this.approvalsRepository.save(approval);
   }
@@ -187,15 +224,11 @@ export class ApprovalsService {
   /**
    * Skip non-mandatory approval
    */
-  async skipApproval(id: string, reason: string): Promise<Approval> {
+  async skipApproval(id: string, userId: string, reason: string): Promise<Approval> {
     const approval = await this.approvalsRepository.findOneBy({ id });
 
     if (!approval) {
       throw new NotFoundException(`Approval with ID ${id} not found`);
-    }
-
-    if (approval.isMandatory) {
-      throw new BadRequestException('Cannot skip mandatory approval');
     }
 
     approval.status = ApprovalStatus.SKIPPED;

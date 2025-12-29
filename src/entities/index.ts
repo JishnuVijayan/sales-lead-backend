@@ -12,5 +12,7 @@ export { Negotiation, NegotiationStatus, NegotiationOutcome } from './negotiatio
 export { Approval, ApprovalStatus, ApprovalStage, ApprovalContext } from './approval.entity';
 export { Agreement, AgreementStage, AgreementType, PaymentTerms } from './agreement.entity';
 export { AgreementStageHistory } from './agreement-stage-history.entity';
+export { AgreementApprovalConfig } from './agreement-approval-config.entity';
+export { AgreementActivity, AgreementActivityType } from './agreement-activity.entity';
 export { SLAConfig, SLAStageType } from './sla-config.entity';
 export { Notification, NotificationType, NotificationStatus } from './notification.entity';

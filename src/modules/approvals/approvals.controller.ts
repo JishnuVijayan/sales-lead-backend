@@ -64,8 +64,9 @@ export class ApprovalsController {
   async skip(
     @Param('id') id: string,
     @Body('reason') reason: string,
+    @Request() req,
   ) {
-    return await this.approvalsService.skipApproval(id, reason);
+    return await this.approvalsService.skipApproval(id, req.user.userId, reason);
   }
 
   @Delete('entity/:context/:entityId')

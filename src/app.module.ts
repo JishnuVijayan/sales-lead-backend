@@ -20,6 +20,8 @@ import { Negotiation } from './entities/negotiation.entity';
 import { Approval } from './entities/approval.entity';
 import { Agreement } from './entities/agreement.entity';
 import { AgreementStageHistory } from './entities/agreement-stage-history.entity';
+import { AgreementApprovalConfig } from './entities/agreement-approval-config.entity';
+import { AgreementActivity } from './entities/agreement-activity.entity';
 import { SLAConfig } from './entities/sla-config.entity';
 import { Notification } from './entities/notification.entity';
 import { LeadsModule } from './modules/leads/leads.module';
@@ -37,6 +39,8 @@ import { AuthModule } from './auth/auth.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { ApprovalsModule } from './modules/approvals/approvals.module';
 import { AgreementsModule } from './modules/agreements/agreements.module';
+import { AgreementApprovalConfigsModule } from './modules/agreement-approval-configs/agreement-approval-configs.module';
+import { AgreementActivitiesModule } from './modules/agreement-activities/agreement-activities.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { SLAModule } from './modules/sla/sla.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
@@ -56,7 +60,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
         username: configService.get('DB_USERNAME'),
         password: configService.get('DB_PASSWORD'),
         database: configService.get('DB_DATABASE'),
-        entities: [Lead, User, LeadActivity, Proposal, ProposalItem, ProposalDocument, ProposalActivity, ProposalApprovalConfig, WorkOrder, Document, Negotiation, Approval, Agreement, AgreementStageHistory, SLAConfig, Notification],
+        entities: [Lead, User, LeadActivity, Proposal, ProposalItem, ProposalDocument, ProposalActivity, ProposalApprovalConfig, WorkOrder, Document, Negotiation, Approval, Agreement, AgreementStageHistory, AgreementActivity, AgreementApprovalConfig, SLAConfig, Notification],
         synchronize: configService.get('NODE_ENV') === 'development',
         logging: configService.get('NODE_ENV') === 'development',
         // Enable SSL for production Postgres (Neon requires sslmode=require)
@@ -83,6 +87,8 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
     AuthModule,
     ApprovalsModule,
     AgreementsModule,
+    AgreementApprovalConfigsModule,
+    AgreementActivitiesModule,
     ReportsModule,
     NotificationsModule,
     SLAModule,

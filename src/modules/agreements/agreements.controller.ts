@@ -77,10 +77,9 @@ export class AgreementsController {
     return this.agreementsService.terminate(id, terminateDto, req.user.userId);
   }
 
-  @Put(':id/cancel')
-  @Roles(UserRole.ADMIN, UserRole.ACCOUNT_MANAGER, UserRole.SALES_MANAGER)
-  cancel(@Param('id') id: string, @Body() body: { reason: string }, @Request() req) {
-    return this.agreementsService.cancel(id, body.reason, req.user.userId);
+  @Get(':id/approval-status')
+  getApprovalStatus(@Param('id') id: string) {
+    return this.agreementsService.checkApprovalStatus(id);
   }
 
   @Delete(':id')
@@ -219,6 +218,29 @@ export class AgreementsController {
     @Body() body: { projectId: string }
   ) {
     return this.agreementsService.updateProjectId(id, body.projectId);
+  }
+
+  // Custom Approval Workflow Endpoints
+  @Post(':id/send-for-approval')
+  @Roles(UserRole.ADMIN, UserRole.LEGAL, UserRole.ACCOUNT_MANAGER, UserRole.SALES_MANAGER)
+  sendForApproval(@Param('id') id: string, @Request() req) {
+    return this.agreementsService.sendForApproval(id, req.user.userId);
+  }
+
+  @Post(':id/return-to-creator')
+  @UseGuards(JwtAuthGuard)
+  returnToCreator(
+    @Param('id') id: string,
+    @Body() body: { reason: string },
+    @Request() req
+  ) {
+    return this.agreementsService.returnToCreator(id, req.user.userId, body.reason);
+  }
+
+  @Post(':id/update-stage-after-approval')
+  @UseGuards(JwtAuthGuard)
+  updateStageAfterApproval(@Param('id') id: string, @Request() req) {
+    return this.agreementsService.updateStageAfterApproval(id, req.user.userId);
   }
 }
 

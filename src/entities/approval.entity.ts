@@ -7,12 +7,14 @@ export enum ApprovalStatus {
   APPROVED = 'Approved',
   REJECTED = 'Rejected',
   SKIPPED = 'Skipped',
+  RETURNED = 'Returned',
 }
 
 export enum ApprovalStage {
   ACCOUNT_MANAGER = 'Account Manager',
   SALES_MANAGER = 'Sales Manager',
   FINANCE = 'Finance',
+  LEGAL = 'Legal',
   PROCUREMENT = 'Procurement',
   DELIVERY_MANAGER = 'Delivery Manager',
   CEO = 'CEO',
@@ -95,6 +97,14 @@ export class Approval {
 
   @Column({ name: 'created_by_user_id', nullable: true })
   createdByUserId: string;
+
+  @Column({ type: 'jsonb', nullable: true })
+  attachments: Array<{
+    fileName: string;
+    filePath: string;
+    uploadedAt: Date;
+    uploadedBy: string;
+  }>;
 
   @CreateDateColumn({ name: 'created_date' })
   createdDate: Date;
