@@ -30,7 +30,9 @@ async function fixStageHistoryUsers() {
       .orderBy('history.changedDate', 'ASC')
       .getMany();
 
-    console.log(`Found ${historyWithoutUser.length} stage history records without users\n`);
+    console.log(
+      `Found ${historyWithoutUser.length} stage history records without users\n`,
+    );
 
     if (historyWithoutUser.length === 0) {
       console.log('✅ All stage history records have users assigned!');
@@ -44,7 +46,9 @@ async function fixStageHistoryUsers() {
     });
 
     if (!adminUser) {
-      console.error('❌ No admin user found. Please create an admin user first.');
+      console.error(
+        '❌ No admin user found. Please create an admin user first.',
+      );
       await app.close();
       return;
     }
@@ -73,23 +77,38 @@ async function fixStageHistoryUsers() {
       // 1. If agreement has a creator, use that
       if (agreement.createdById && agreement.createdBy) {
         userToAssign = agreement.createdBy;
-        console.log(`📝 History ${history.id.substring(0, 8)}... | ${history.fromStage} → ${history.toStage}`);
+        console.log(
+          `📝 History ${history.id.substring(0, 8)}... | ${history.fromStage} → ${history.toStage}`,
+        );
         console.log(`   Agreement: ${agreement.agreementNumber || 'N/A'}`);
-        console.log(`   Assigning to: ${userToAssign.name} (${userToAssign.email}) - Agreement Creator`);
+        console.log(
+          `   Assigning to: ${userToAssign.name} (${userToAssign.email}) - Agreement Creator`,
+        );
       }
       // 2. For Draft creation, use the agreement creator
-      else if (history.fromStage === history.toStage && history.toStage === 'Draft') {
+      else if (
+        history.fromStage === history.toStage &&
+        history.toStage === 'Draft'
+      ) {
         userToAssign = adminUser;
-        console.log(`📝 History ${history.id.substring(0, 8)}... | ${history.fromStage} → ${history.toStage}`);
+        console.log(
+          `📝 History ${history.id.substring(0, 8)}... | ${history.fromStage} → ${history.toStage}`,
+        );
         console.log(`   Agreement: ${agreement.agreementNumber || 'N/A'}`);
-        console.log(`   Assigning to: ${adminUser.name} (${adminUser.email}) - Admin (Fallback)`);
+        console.log(
+          `   Assigning to: ${adminUser.name} (${adminUser.email}) - Admin (Fallback)`,
+        );
       }
       // 3. Otherwise use admin as fallback
       else {
         userToAssign = adminUser;
-        console.log(`📝 History ${history.id.substring(0, 8)}... | ${history.fromStage} → ${history.toStage}`);
+        console.log(
+          `📝 History ${history.id.substring(0, 8)}... | ${history.fromStage} → ${history.toStage}`,
+        );
         console.log(`   Agreement: ${agreement.agreementNumber || 'N/A'}`);
-        console.log(`   Assigning to: ${adminUser.name} (${adminUser.email}) - Admin (Fallback)`);
+        console.log(
+          `   Assigning to: ${adminUser.name} (${adminUser.email}) - Admin (Fallback)`,
+        );
       }
 
       // Update the history record
@@ -110,7 +129,6 @@ async function fixStageHistoryUsers() {
     console.log(`   ⚠️  Skipped: ${skipped}`);
     console.log(`   📊 Total: ${historyWithoutUser.length}`);
     console.log('\n✨ Script completed successfully!');
-
   } catch (error) {
     console.error('❌ Error fixing stage history:', error);
   }

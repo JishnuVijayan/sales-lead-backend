@@ -1,9 +1,26 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Approval, ApprovalStatus, ApprovalStage, ApprovalContext } from '../../entities/approval.entity';
+import {
+  Approval,
+  ApprovalStatus,
+  ApprovalStage,
+  ApprovalContext,
+} from '../../entities/approval.entity';
 import { User } from '../../entities/user.entity';
-import { CreateApprovalDto, UpdateApprovalDto, RespondToApprovalDto, BulkCreateApprovalsDto } from './dto/approval.dto';
+import {
+  CreateApprovalDto,
+  UpdateApprovalDto,
+  RespondToApprovalDto,
+  BulkCreateApprovalsDto,
+} from './dto/approval.dto';
+import { ProposalActivitiesService } from '../proposal-activities/proposal-activities.service';
+import { ProposalActivityType } from '../../entities/proposal-activity.entity';
 
 @Injectable()
 export class ApprovalsService {
@@ -12,6 +29,7 @@ export class ApprovalsService {
     private approvalsRepository: Repository<Approval>,
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    private proposalActivitiesService: ProposalActivitiesService,
   ) {}
 
   /**
@@ -26,9 +44,11 @@ export class ApprovalsService {
    * Create approval workflow for proposal/agreement
    * Creates all approval stages in sequence
    */
-  async createApprovalWorkflow(bulkDto: BulkCreateApprovalsDto): Promise<Approval[]> {
+  async createApprovalWorkflow(
+    bulkDto: BulkCreateApprovalsDto,
+  ): Promise<Approval[]> {
     const approvals: Approval[] = [];
-    
+
     for (const stageConfig of bulkDto.stages) {
       // Find a user with the matching role to assign as approver
       let approverId = stageConfig.approverId;
@@ -52,17 +72,20 @@ export class ApprovalsService {
         sequenceOrder: stageConfig.sequenceOrder,
         status: ApprovalStatus.PENDING,
       });
-      
+
       approvals.push(approval);
     }
-    
+
     return await this.approvalsRepository.save(approvals);
   }
 
   /**
    * Get all approvals for an entity
    */
-  async findByEntity(context: ApprovalContext, entityId: string): Promise<Approval[]> {
+  async findByEntity(
+    context: ApprovalContext,
+    entityId: string,
+  ): Promise<Approval[]> {
     return await this.approvalsRepository.find({
       where: { context, entityId },
       relations: ['approver', 'lead'],
@@ -116,27 +139,42 @@ export class ApprovalsService {
     }
 
     // Get current user to check role
-    const currentUser = await this.usersRepository.findOne({ where: { id: userId } });
+    const currentUser = await this.usersRepository.findOne({
+      where: { id: userId },
+    });
     if (!currentUser) {
       throw new ForbiddenException('User not found');
     }
 
     // Authorization check - allow if user is the assigned approver OR has the required role
     const isAssignedApprover = approval.approverId === userId;
-    const hasRequiredRole = approval.approverRole && currentUser.role === approval.approverRole;
-    
+    const hasRequiredRole =
+      approval.approverRole && currentUser.role === approval.approverRole;
+
     if (!isAssignedApprover && !hasRequiredRole) {
-      throw new ForbiddenException('You are not authorized to respond to this approval');
+      throw new ForbiddenException(
+        'You are not authorized to respond to this approval',
+      );
     }
 
     // Status validation
     if (approval.status !== ApprovalStatus.PENDING) {
-      throw new BadRequestException(`Approval already ${approval.status.toLowerCase()}`);
+      throw new BadRequestException(
+        `Approval already ${approval.status.toLowerCase()}`,
+      );
     }
 
     // Validate status
-    if (![ApprovalStatus.APPROVED, ApprovalStatus.REJECTED, ApprovalStatus.RETURNED].includes(respondDto.status)) {
-      throw new BadRequestException('Status must be Approved, Rejected, or Returned');
+    if (
+      ![
+        ApprovalStatus.APPROVED,
+        ApprovalStatus.REJECTED,
+        ApprovalStatus.RETURNED,
+      ].includes(respondDto.status)
+    ) {
+      throw new BadRequestException(
+        'Status must be Approved, Rejected, or Returned',
+      );
     }
 
     // Update approval
@@ -144,21 +182,55 @@ export class ApprovalsService {
     if (respondDto.comments) {
       approval.comments = respondDto.comments;
     }
-    
+
     // Save attachments if provided
     if (respondDto.attachments && respondDto.attachments.length > 0) {
-      approval.attachments = respondDto.attachments.map(att => ({
+      approval.attachments = respondDto.attachments.map((att) => ({
         fileName: att.fileName,
         filePath: att.filePath,
         uploadedAt: new Date(),
         uploadedBy: userId,
       }));
     }
-    
+
     approval.approverId = userId;
     approval.respondedDate = new Date();
 
-    return await this.approvalsRepository.save(approval);
+    const savedApproval = await this.approvalsRepository.save(approval);
+
+    // Create proposal activity if this is a proposal approval
+    if (savedApproval.context === ApprovalContext.PROPOSAL) {
+      const activityType = savedApproval.status === ApprovalStatus.APPROVED 
+        ? ProposalActivityType.APPROVAL_RECEIVED 
+        : ProposalActivityType.APPROVAL_REJECTED;
+
+      const subject = `${savedApproval.stage} ${savedApproval.status.toLowerCase()}`;
+      const description = respondDto.comments || `${savedApproval.stage} was ${savedApproval.status.toLowerCase()} by ${currentUser.name || currentUser.email}`;
+
+      try {
+        await this.proposalActivitiesService.create({
+          proposalId: savedApproval.entityId,
+          leadId: savedApproval.leadId,
+          activityType,
+          subject,
+          description,
+          metadata: {
+            approvalId: savedApproval.id,
+            approverId: userId,
+            approverName: currentUser.name,
+            approverRole: currentUser.role,
+            stage: savedApproval.stage,
+            status: savedApproval.status,
+            comments: respondDto.comments,
+          },
+        }, userId);
+      } catch (error) {
+        // Log error but don't fail the approval process
+        console.error('Failed to create proposal activity for approval:', error);
+      }
+    }
+
+    return savedApproval;
   }
 
   /**
@@ -167,7 +239,7 @@ export class ApprovalsService {
   async returnToCreator(
     approvalId: string,
     userId: string,
-    reason: string
+    reason: string,
   ): Promise<Approval> {
     const approval = await this.approvalsRepository.findOne({
       where: { id: approvalId },
@@ -184,13 +256,41 @@ export class ApprovalsService {
     approval.respondedDate = new Date();
     approval.approverId = userId;
 
-    return await this.approvalsRepository.save(approval);
+    const savedApproval = await this.approvalsRepository.save(approval);
+
+    // Create proposal activity if this is a proposal approval
+    if (savedApproval.context === ApprovalContext.PROPOSAL) {
+      try {
+        await this.proposalActivitiesService.create({
+          proposalId: savedApproval.entityId,
+          leadId: savedApproval.leadId,
+          activityType: ProposalActivityType.APPROVAL_RETURNED,
+          subject: `${savedApproval.stage} returned to creator`,
+          description: reason || `${savedApproval.stage} was returned to the creator by ${userId}`,
+          metadata: {
+            approvalId: savedApproval.id,
+            approverId: userId,
+            stage: savedApproval.stage,
+            status: savedApproval.status,
+            reason: reason,
+          },
+        }, userId);
+      } catch (error) {
+        // Log error but don't fail the approval process
+        console.error('Failed to create proposal activity for approval return:', error);
+      }
+    }
+
+    return savedApproval;
   }
 
   /**
    * Check if all mandatory approvals are completed
    */
-  async areAllApprovalsCompleted(context: ApprovalContext, entityId: string): Promise<boolean> {
+  async areAllApprovalsCompleted(
+    context: ApprovalContext,
+    entityId: string,
+  ): Promise<boolean> {
     const mandatoryApprovals = await this.approvalsRepository.find({
       where: {
         context,
@@ -200,14 +300,19 @@ export class ApprovalsService {
     });
 
     return mandatoryApprovals.every(
-      (approval) => approval.status === ApprovalStatus.APPROVED || approval.status === ApprovalStatus.SKIPPED,
+      (approval) =>
+        approval.status === ApprovalStatus.APPROVED ||
+        approval.status === ApprovalStatus.SKIPPED,
     );
   }
 
   /**
    * Get next pending approval in sequence
    */
-  async getNextPendingApproval(context: ApprovalContext, entityId: string): Promise<Approval | null> {
+  async getNextPendingApproval(
+    context: ApprovalContext,
+    entityId: string,
+  ): Promise<Approval | null> {
     const approval = await this.approvalsRepository.findOne({
       where: {
         context,
@@ -224,7 +329,11 @@ export class ApprovalsService {
   /**
    * Skip non-mandatory approval
    */
-  async skipApproval(id: string, userId: string, reason: string): Promise<Approval> {
+  async skipApproval(
+    id: string,
+    userId: string,
+    reason: string,
+  ): Promise<Approval> {
     const approval = await this.approvalsRepository.findOneBy({ id });
 
     if (!approval) {
@@ -241,8 +350,13 @@ export class ApprovalsService {
   /**
    * Reset approval workflow (for revisions)
    */
-  async resetApprovals(context: ApprovalContext, entityId: string, fromStage?: ApprovalStage): Promise<void> {
-    const query = this.approvalsRepository.createQueryBuilder()
+  async resetApprovals(
+    context: ApprovalContext,
+    entityId: string,
+    fromStage?: ApprovalStage,
+  ): Promise<void> {
+    const query = this.approvalsRepository
+      .createQueryBuilder()
       .update(Approval)
       .set({
         status: ApprovalStatus.PENDING,
@@ -258,9 +372,11 @@ export class ApprovalsService {
       const stageOrder = await this.approvalsRepository.findOne({
         where: { context, entityId, stage: fromStage },
       });
-      
+
       if (stageOrder) {
-        query.andWhere('sequenceOrder >= :order', { order: stageOrder.sequenceOrder });
+        query.andWhere('sequenceOrder >= :order', {
+          order: stageOrder.sequenceOrder,
+        });
       }
     }
 
@@ -270,20 +386,47 @@ export class ApprovalsService {
   /**
    * Get approval summary
    */
-  async getApprovalSummary(context: ApprovalContext, entityId: string): Promise<{
+  async getApprovalSummary(
+    context: ApprovalContext,
+    entityId: string,
+  ): Promise<{
     total: number;
     pending: number;
     approved: number;
     rejected: number;
     percentComplete: number;
   }> {
-    const approvals = await this.findByEntity(context, entityId);
-    
-    const total = approvals.length;
-    const pending = approvals.filter(a => a.status === ApprovalStatus.PENDING).length;
-    const approved = approvals.filter(a => a.status === ApprovalStatus.APPROVED).length;
-    const rejected = approvals.filter(a => a.status === ApprovalStatus.REJECTED).length;
-    const percentComplete = total > 0 ? Math.round((approved / total) * 100) : 0;
+    const allApprovals = await this.findByEntity(context, entityId);
+
+    // Sort approvals by sequence order and creation date (newest first)
+    const sortedApprovals = [...allApprovals].sort((a, b) => {
+      // First sort by sequence order
+      if (a.sequenceOrder !== b.sequenceOrder) {
+        return a.sequenceOrder - b.sequenceOrder;
+      }
+      // Then by creation date (newest first) to get the most recent for each sequence
+      return new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime();
+    });
+
+    // Filter to show only the most recent approval for each sequence order
+    // This removes duplicate entries when proposals are returned and resent
+    const currentApprovals = sortedApprovals.filter((approval, index, arr) => {
+      // Keep the first (most recent) approval for each sequence order
+      return arr.findIndex(a => a.sequenceOrder === approval.sequenceOrder) === index;
+    });
+
+    const total = currentApprovals.length;
+    const pending = currentApprovals.filter(
+      (a) => a.status === ApprovalStatus.PENDING,
+    ).length;
+    const approved = currentApprovals.filter(
+      (a) => a.status === ApprovalStatus.APPROVED,
+    ).length;
+    const rejected = currentApprovals.filter(
+      (a) => a.status === ApprovalStatus.REJECTED,
+    ).length;
+    const percentComplete =
+      total > 0 ? Math.round((approved / total) * 100) : 0;
 
     return { total, pending, approved, rejected, percentComplete };
   }
@@ -291,7 +434,10 @@ export class ApprovalsService {
   /**
    * Delete approvals (for entity deletion)
    */
-  async deleteByEntity(context: ApprovalContext, entityId: string): Promise<void> {
+  async deleteByEntity(
+    context: ApprovalContext,
+    entityId: string,
+  ): Promise<void> {
     await this.approvalsRepository.delete({ context, entityId });
   }
 

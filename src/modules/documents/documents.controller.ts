@@ -1,4 +1,21 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile, Query, HttpCode, HttpStatus, UseGuards, Request, UsePipes, ValidationPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseInterceptors,
+  UploadedFile,
+  Query,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+  Request,
+  UsePipes,
+  ValidationPipe,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
@@ -12,24 +29,30 @@ export class DocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
 
   @Post('upload')
-  @UsePipes(new ValidationPipe({ whitelist: false, forbidNonWhitelisted: false }))
-  @UseInterceptors(FileInterceptor('file', {
-    storage: diskStorage({
-      destination: './uploads',
-      filename: (req, file, callback) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const ext = file.originalname ? extname(file.originalname) : '';
-        callback(null, `file-${uniqueSuffix}${ext}`);
+  @UsePipes(
+    new ValidationPipe({ whitelist: false, forbidNonWhitelisted: false }),
+  )
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: './uploads',
+        filename: (req, file, callback) => {
+          const uniqueSuffix =
+            Date.now() + '-' + Math.round(Math.random() * 1e9);
+          const ext = file.originalname ? extname(file.originalname) : '';
+          callback(null, `file-${uniqueSuffix}${ext}`);
+        },
+      }),
+      limits: {
+        fileSize: 10 * 1024 * 1024, // 10MB
       },
     }),
-    limits: {
-      fileSize: 10 * 1024 * 1024, // 10MB
-    },
-  }))
+  )
   @HttpCode(HttpStatus.CREATED)
   async uploadFile(
     @UploadedFile() file: Express.Multer.File,
-    @Body() body: { leadId: string; description?: string; documentType?: string },
+    @Body()
+    body: { leadId: string; description?: string; documentType?: string },
     @Request() req: any,
   ) {
     if (!file) {
@@ -40,7 +63,7 @@ export class DocumentsController {
     const createDocumentDto: CreateDocumentDto = {
       leadId: body.leadId,
       description: body.description || undefined,
-      documentType: body.documentType as any || undefined,
+      documentType: (body.documentType as any) || undefined,
     };
     return this.documentsService.create(createDocumentDto, file, userId);
   }
@@ -61,7 +84,10 @@ export class DocumentsController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateDocumentDto: UpdateDocumentDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateDocumentDto: UpdateDocumentDto,
+  ) {
     return this.documentsService.update(id, updateDocumentDto);
   }
 

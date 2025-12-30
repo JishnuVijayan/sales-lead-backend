@@ -23,7 +23,12 @@ export class ActivitiesService {
     return savedActivity;
   }
 
-  async findAll(): Promise<{ data: LeadActivity[]; total: number; page: number; limit: number }> {
+  async findAll(): Promise<{
+    data: LeadActivity[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
     const [activities, total] = await this.activitiesRepository.findAndCount({
       relations: ['lead', 'createdBy', 'assignedTo'],
       order: { createdDate: 'DESC' },
@@ -58,10 +63,16 @@ export class ActivitiesService {
     return activity;
   }
 
-  async update(id: string, updateActivityDto: UpdateActivityDto): Promise<LeadActivity> {
+  async update(
+    id: string,
+    updateActivityDto: UpdateActivityDto,
+  ): Promise<LeadActivity> {
     const activity = await this.findOne(id);
 
-    const updatedActivity = this.activitiesRepository.merge(activity, updateActivityDto);
+    const updatedActivity = this.activitiesRepository.merge(
+      activity,
+      updateActivityDto,
+    );
     const savedActivity = await this.activitiesRepository.save(updatedActivity);
 
     // Update lead's last action date

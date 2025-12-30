@@ -1,9 +1,15 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { AgreementActivity, AgreementActivityType } from '../../entities/agreement-activity.entity';
+import {
+  AgreementActivity,
+  AgreementActivityType,
+} from '../../entities/agreement-activity.entity';
 import { Agreement } from '../../entities/agreement.entity';
-import { CreateAgreementActivityDto, CreateAgreementActivityCommentDto } from './dto/agreement-activity.dto';
+import {
+  CreateAgreementActivityDto,
+  CreateAgreementActivityCommentDto,
+} from './dto/agreement-activity.dto';
 
 @Injectable()
 export class AgreementActivitiesService {
@@ -14,7 +20,10 @@ export class AgreementActivitiesService {
     private agreementsRepository: Repository<Agreement>,
   ) {}
 
-  async create(createDto: CreateAgreementActivityDto, userId: string): Promise<AgreementActivity> {
+  async create(
+    createDto: CreateAgreementActivityDto,
+    userId: string,
+  ): Promise<AgreementActivity> {
     const agreement = await this.agreementsRepository.findOne({
       where: { id: createDto.agreementId },
       relations: ['lead'],
@@ -33,7 +42,10 @@ export class AgreementActivitiesService {
     return await this.agreementActivitiesRepository.save(activity);
   }
 
-  async createComment(dto: CreateAgreementActivityCommentDto, userId: string): Promise<AgreementActivity> {
+  async createComment(
+    dto: CreateAgreementActivityCommentDto,
+    userId: string,
+  ): Promise<AgreementActivity> {
     const agreement = await this.agreementsRepository.findOne({
       where: { id: dto.agreementId },
       relations: ['lead'],
@@ -85,7 +97,10 @@ export class AgreementActivitiesService {
     return await this.agreementActivitiesRepository.save(activity);
   }
 
-  async findAll(agreementId?: string, activityType?: AgreementActivityType): Promise<AgreementActivity[]> {
+  async findAll(
+    agreementId?: string,
+    activityType?: AgreementActivityType,
+  ): Promise<AgreementActivity[]> {
     const where: any = {};
     if (agreementId) where.agreementId = agreementId;
     if (activityType) where.activityType = activityType;
@@ -125,7 +140,7 @@ export class AgreementActivitiesService {
 
   async complete(id: string, userId: string): Promise<AgreementActivity> {
     const activity = await this.findOne(id);
-    
+
     activity.isCompleted = true;
     activity.completedDate = new Date();
     activity.completedById = userId;

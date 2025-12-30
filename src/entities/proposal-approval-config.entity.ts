@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  CreateDateColumn,
+} from 'typeorm';
 import { Proposal } from './proposal.entity';
 import { User } from './user.entity';
 
@@ -13,7 +20,9 @@ export class ProposalApprovalConfig {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Proposal, proposal => proposal.approvalConfigs, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Proposal, (proposal) => proposal.approvalConfigs, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'proposal_id' })
   proposal: Proposal;
 

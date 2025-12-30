@@ -1,6 +1,20 @@
-import { IsEnum, IsString, IsUUID, IsOptional, IsBoolean, IsInt, IsNotEmpty, IsArray, ValidateNested } from 'class-validator';
+import {
+  IsEnum,
+  IsString,
+  IsUUID,
+  IsOptional,
+  IsBoolean,
+  IsInt,
+  IsNotEmpty,
+  IsArray,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
-import { ApprovalStatus, ApprovalStage, ApprovalContext } from '../../../entities/approval.entity';
+import {
+  ApprovalStatus,
+  ApprovalStage,
+  ApprovalContext,
+} from '../../../entities/approval.entity';
 
 export class CreateApprovalDto {
   @IsEnum(ApprovalContext)

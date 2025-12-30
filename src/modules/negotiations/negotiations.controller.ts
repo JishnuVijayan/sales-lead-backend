@@ -1,6 +1,23 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, HttpCode, HttpStatus, Put, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  HttpCode,
+  HttpStatus,
+  Put,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { NegotiationsService } from './negotiations.service';
-import { CreateNegotiationDto, UpdateNegotiationDto } from './dto/negotiation.dto';
+import {
+  CreateNegotiationDto,
+  UpdateNegotiationDto,
+} from './dto/negotiation.dto';
 import { NegotiationOutcome } from '../../entities';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
@@ -34,7 +51,10 @@ export class NegotiationsController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateNegotiationDto: UpdateNegotiationDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateNegotiationDto: UpdateNegotiationDto,
+  ) {
     return this.negotiationsService.update(id, updateNegotiationDto);
   }
 
@@ -42,9 +62,13 @@ export class NegotiationsController {
   @HttpCode(HttpStatus.OK)
   completeNegotiation(
     @Param('id') id: string,
-    @Body() body: { outcome: NegotiationOutcome; finalAmount?: number }
+    @Body() body: { outcome: NegotiationOutcome; finalAmount?: number },
   ) {
-    return this.negotiationsService.completeNegotiation(id, body.outcome, body.finalAmount);
+    return this.negotiationsService.completeNegotiation(
+      id,
+      body.outcome,
+      body.finalAmount,
+    );
   }
 
   @Delete(':id')
@@ -60,9 +84,15 @@ export class NegotiationsController {
   requestRevision(
     @Param('id') id: string,
     @Request() req,
-    @Body() body: { revisionReason: string; changes: Partial<UpdateNegotiationDto> }
+    @Body()
+    body: { revisionReason: string; changes: Partial<UpdateNegotiationDto> },
   ) {
-    return this.negotiationsService.requestRevision(id, req.user.userId, body.revisionReason, body.changes);
+    return this.negotiationsService.requestRevision(
+      id,
+      req.user.userId,
+      body.revisionReason,
+      body.changes,
+    );
   }
 
   @Put(':id/approve-revision')
@@ -71,9 +101,14 @@ export class NegotiationsController {
   approveRevision(
     @Param('id') id: string,
     @Request() req,
-    @Body() body: { approved: boolean; notes?: string }
+    @Body() body: { approved: boolean; notes?: string },
   ) {
-    return this.negotiationsService.approveRevision(id, req.user.userId, body.approved, body.notes);
+    return this.negotiationsService.approveRevision(
+      id,
+      req.user.userId,
+      body.approved,
+      body.notes,
+    );
   }
 
   @Get(':id/revision-history')

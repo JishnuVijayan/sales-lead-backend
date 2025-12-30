@@ -76,7 +76,7 @@ async function fixAgreementSigningDates() {
       if (signedHistory) {
         // Set company signed date to the date when it transitioned to Signed
         agreement.companySignedDate = signedHistory.changedDate;
-        
+
         // Set company signed by to the person who made the transition
         if (signedHistory.changedBy) {
           agreement.companySignedBy = signedHistory.changedBy;
@@ -84,8 +84,12 @@ async function fixAgreementSigningDates() {
 
         await agreementRepo.save(agreement);
 
-        console.log(`   ✅ Updated signing date to: ${signedHistory.changedDate}`);
-        console.log(`   ✅ Signed by: ${signedHistory.changedBy?.name || 'Unknown'}`);
+        console.log(
+          `   ✅ Updated signing date to: ${signedHistory.changedDate}`,
+        );
+        console.log(
+          `   ✅ Signed by: ${signedHistory.changedBy?.name || 'Unknown'}`,
+        );
       } else {
         console.log('   ⚠️  No stage history found for Signed transition');
       }

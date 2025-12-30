@@ -4,7 +4,10 @@ import { Repository } from 'typeorm';
 import { AgreementApprovalConfig } from '../../entities/agreement-approval-config.entity';
 import { Agreement } from '../../entities/agreement.entity';
 import { User } from '../../entities/user.entity';
-import { CreateAgreementApprovalConfigDto, DefineAgreementApprovalFlowDto } from './dto/agreement-approval-config.dto';
+import {
+  CreateAgreementApprovalConfigDto,
+  DefineAgreementApprovalFlowDto,
+} from './dto/agreement-approval-config.dto';
 
 @Injectable()
 export class AgreementApprovalConfigsService {
@@ -17,7 +20,10 @@ export class AgreementApprovalConfigsService {
     private usersRepository: Repository<User>,
   ) {}
 
-  async create(createDto: CreateAgreementApprovalConfigDto, userId: string): Promise<AgreementApprovalConfig> {
+  async create(
+    createDto: CreateAgreementApprovalConfigDto,
+    userId: string,
+  ): Promise<AgreementApprovalConfig> {
     const agreement = await this.agreementsRepository.findOne({
       where: { id: createDto.agreementId },
     });
@@ -34,7 +40,10 @@ export class AgreementApprovalConfigsService {
     return await this.configsRepository.save(config);
   }
 
-  async defineApprovalFlow(dto: DefineAgreementApprovalFlowDto, userId: string): Promise<AgreementApprovalConfig[]> {
+  async defineApprovalFlow(
+    dto: DefineAgreementApprovalFlowDto,
+    userId: string,
+  ): Promise<AgreementApprovalConfig[]> {
     const agreement = await this.agreementsRepository.findOne({
       where: { id: dto.agreementId },
     });
@@ -56,7 +65,10 @@ export class AgreementApprovalConfigsService {
         approverRole: approverConfig.approverRole,
         departmentId: approverConfig.departmentId,
         sequenceOrder: approverConfig.sequenceOrder,
-        isMandatory: approverConfig.isMandatory !== undefined ? approverConfig.isMandatory : true,
+        isMandatory:
+          approverConfig.isMandatory !== undefined
+            ? approverConfig.isMandatory
+            : true,
         approvalType: approverConfig.approvalType,
         createdById: userId,
       });
@@ -67,7 +79,9 @@ export class AgreementApprovalConfigsService {
     const savedConfigs = await this.configsRepository.save(configs);
 
     // Mark agreement as having custom approval flow
-    await this.agreementsRepository.update(dto.agreementId, { hasCustomApprovalFlow: true });
+    await this.agreementsRepository.update(dto.agreementId, {
+      hasCustomApprovalFlow: true,
+    });
 
     return savedConfigs;
   }
@@ -81,7 +95,9 @@ export class AgreementApprovalConfigsService {
     });
   }
 
-  async findByAgreement(agreementId: string): Promise<AgreementApprovalConfig[]> {
+  async findByAgreement(
+    agreementId: string,
+  ): Promise<AgreementApprovalConfig[]> {
     return this.findAll(agreementId);
   }
 

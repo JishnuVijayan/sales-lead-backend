@@ -1,4 +1,10 @@
-import { IsNotEmpty, IsUUID, IsEnum, IsString, IsOptional } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsUUID,
+  IsEnum,
+  IsString,
+  IsOptional,
+} from 'class-validator';
 import { AgreementActivityType } from '../../../entities/agreement-activity.entity';
 
 export class CreateAgreementActivityDto {

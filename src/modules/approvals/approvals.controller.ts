@@ -1,10 +1,25 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { UserRole } from '../../entities/user.entity';
 import { ApprovalsService } from './approvals.service';
-import { CreateApprovalDto, RespondToApprovalDto, BulkCreateApprovalsDto } from './dto/approval.dto';
+import {
+  CreateApprovalDto,
+  RespondToApprovalDto,
+  BulkCreateApprovalsDto,
+} from './dto/approval.dto';
 import { ApprovalContext } from '../../entities/approval.entity';
 
 @Controller('approvals')
@@ -48,7 +63,11 @@ export class ApprovalsController {
     @Request() req,
     @Body() respondDto: RespondToApprovalDto,
   ) {
-    return await this.approvalsService.respondToApproval(id, req.user.userId, respondDto);
+    return await this.approvalsService.respondToApproval(
+      id,
+      req.user.userId,
+      respondDto,
+    );
   }
 
   @Get('summary/:context/:entityId')
@@ -66,7 +85,11 @@ export class ApprovalsController {
     @Body('reason') reason: string,
     @Request() req,
   ) {
-    return await this.approvalsService.skipApproval(id, req.user.userId, reason);
+    return await this.approvalsService.skipApproval(
+      id,
+      req.user.userId,
+      reason,
+    );
   }
 
   @Delete('entity/:context/:entityId')

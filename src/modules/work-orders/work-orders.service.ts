@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { WorkOrder, AgreementType, PaymentTerms } from '../../entities';
@@ -40,7 +44,7 @@ export class WorkOrdersService {
 
     // Mark lead as converted
     await this.leadsService.convertToWon(createWorkOrderDto.leadId);
-    
+
     // Send lead won notification
     try {
       const lead = await this.leadsService.findOne(createWorkOrderDto.leadId);
@@ -55,34 +59,53 @@ export class WorkOrdersService {
 
     // Phase 2: Auto-create Agreement when Work Order is created
     if (createWorkOrderDto.createdById) {
-      await this.createAgreementFromWorkOrder(savedWorkOrder, createWorkOrderDto.createdById);
+      await this.createAgreementFromWorkOrder(
+        savedWorkOrder,
+        createWorkOrderDto.createdById,
+      );
     }
 
     return this.findOne(savedWorkOrder.id);
   }
 
   // Phase 2: Auto-create Agreement
-  private async createAgreementFromWorkOrder(workOrder: WorkOrder, userId: string): Promise<void> {
+  private async createAgreementFromWorkOrder(
+    workOrder: WorkOrder,
+    userId: string,
+  ): Promise<void> {
     try {
-      await this.agreementsService.create({
-        leadId: workOrder.leadId,
-        title: `Agreement for ${workOrder.title}`,
-        description: workOrder.description,
-        agreementType: AgreementType.CONTRACT,
-        contractValue: workOrder.orderValue,
-        paymentTerms: PaymentTerms.NET_30,
-        scopeOfWork: workOrder.description,
-        assignedToId: workOrder.assignedToOperationsId,
-      }, userId);
+      await this.agreementsService.create(
+        {
+          leadId: workOrder.leadId,
+          title: `Agreement for ${workOrder.title}`,
+          description: workOrder.description,
+          agreementType: AgreementType.CONTRACT,
+          contractValue: workOrder.orderValue,
+          paymentTerms: PaymentTerms.NET_30,
+          scopeOfWork: workOrder.description,
+          assignedToId: workOrder.assignedToOperationsId,
+        },
+        userId,
+      );
     } catch (error) {
       // Log error but don't fail work order creation
       console.error('Failed to auto-create agreement:', error);
     }
   }
 
-  async findAll(): Promise<{ data: WorkOrder[]; total: number; page: number; limit: number }> {
+  async findAll(): Promise<{
+    data: WorkOrder[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
     const [workOrders, total] = await this.workOrdersRepository.findAndCount({
-      relations: ['lead', 'assignedToOperations', 'assignedToAccounts', 'createdBy'],
+      relations: [
+        'lead',
+        'assignedToOperations',
+        'assignedToAccounts',
+        'createdBy',
+      ],
       order: { createdDate: 'DESC' },
     });
 
@@ -94,7 +117,12 @@ export class WorkOrdersService {
     };
   }
 
-  async findByLead(leadId: string): Promise<{ data: WorkOrder[]; total: number; page: number; limit: number }> {
+  async findByLead(leadId: string): Promise<{
+    data: WorkOrder[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
     const [workOrders, total] = await this.workOrdersRepository.findAndCount({
       where: { leadId },
       relations: ['assignedToOperations', 'assignedToAccounts', 'createdBy'],
@@ -112,7 +140,12 @@ export class WorkOrdersService {
   async findOne(id: string): Promise<WorkOrder> {
     const workOrder = await this.workOrdersRepository.findOne({
       where: { id },
-      relations: ['lead', 'assignedToOperations', 'assignedToAccounts', 'createdBy'],
+      relations: [
+        'lead',
+        'assignedToOperations',
+        'assignedToAccounts',
+        'createdBy',
+      ],
     });
 
     if (!workOrder) {
@@ -122,10 +155,16 @@ export class WorkOrdersService {
     return workOrder;
   }
 
-  async update(id: string, updateWorkOrderDto: UpdateWorkOrderDto): Promise<WorkOrder> {
+  async update(
+    id: string,
+    updateWorkOrderDto: UpdateWorkOrderDto,
+  ): Promise<WorkOrder> {
     const workOrder = await this.findOne(id);
 
-    const updatedWorkOrder = this.workOrdersRepository.merge(workOrder, updateWorkOrderDto);
+    const updatedWorkOrder = this.workOrdersRepository.merge(
+      workOrder,
+      updateWorkOrderDto,
+    );
     await this.workOrdersRepository.save(updatedWorkOrder);
 
     return this.findOne(id);

@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { Lead } from './lead.entity';
 import { User } from './user.entity';
 
@@ -19,7 +26,7 @@ export class Document {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Lead, lead => lead.documents, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Lead, (lead) => lead.documents, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'lead_id' })
   lead: Lead;
 

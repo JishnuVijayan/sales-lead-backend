@@ -5,8 +5,16 @@ const API_BASE_URL = 'http://localhost:3000/api';
 // Test PDF download with different user roles
 async function testPdfDownload() {
   const users = [
-    { email: 'user1@gmail.com', password: 'password@123', role: 'ACCOUNT_MANAGER' },
-    { email: 'user2@gmail.com', password: 'password@123', role: 'SALES_MANAGER' },
+    {
+      email: 'user1@gmail.com',
+      password: 'password@123',
+      role: 'ACCOUNT_MANAGER',
+    },
+    {
+      email: 'user2@gmail.com',
+      password: 'password@123',
+      role: 'SALES_MANAGER',
+    },
     { email: 'user3@gmail.com', password: 'password@123', role: 'ADMIN' },
   ];
 
@@ -26,23 +34,29 @@ async function testPdfDownload() {
       console.log('Login successful, got token');
 
       // Try to download PDF
-      const pdfResponse = await axios.get(`${API_BASE_URL}/proposals/${proposalId}/pdf`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
+      const pdfResponse = await axios.get(
+        `${API_BASE_URL}/proposals/${proposalId}/pdf`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          responseType: 'arraybuffer', // For binary data
         },
-        responseType: 'arraybuffer', // For binary data
-      });
+      );
 
       console.log('✅ PDF download successful!');
       console.log(`Response status: ${pdfResponse.status}`);
       console.log(`Content-Type: ${pdfResponse.headers['content-type']}`);
-      console.log(`Content-Length: ${pdfResponse.headers['content-length']} bytes`);
-
+      console.log(
+        `Content-Length: ${pdfResponse.headers['content-length']} bytes`,
+      );
     } catch (error: any) {
       console.log('❌ PDF download failed!');
       if (error.response) {
         console.log(`Status: ${error.response.status}`);
-        console.log(`Error: ${error.response.data?.message || error.response.data}`);
+        console.log(
+          `Error: ${error.response.data?.message || error.response.data}`,
+        );
       } else {
         console.log(`Error: ${error.message}`);
       }

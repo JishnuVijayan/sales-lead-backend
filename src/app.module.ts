@@ -24,6 +24,7 @@ import { AgreementApprovalConfig } from './entities/agreement-approval-config.en
 import { AgreementActivity } from './entities/agreement-activity.entity';
 import { SLAConfig } from './entities/sla-config.entity';
 import { Notification } from './entities/notification.entity';
+import { ProposalStageHistory } from './entities/proposal-stage-history.entity';
 import { LeadsModule } from './modules/leads/leads.module';
 import { ActivitiesModule } from './modules/activities/activities.module';
 import { ProposalsModule } from './modules/proposals/proposals.module';
@@ -60,11 +61,34 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
         username: configService.get('DB_USERNAME'),
         password: configService.get('DB_PASSWORD'),
         database: configService.get('DB_DATABASE'),
-        entities: [Lead, User, LeadActivity, Proposal, ProposalItem, ProposalDocument, ProposalActivity, ProposalApprovalConfig, WorkOrder, Document, Negotiation, Approval, Agreement, AgreementStageHistory, AgreementActivity, AgreementApprovalConfig, SLAConfig, Notification],
+        entities: [
+          Lead,
+          User,
+          LeadActivity,
+          Proposal,
+          ProposalItem,
+          ProposalDocument,
+          ProposalActivity,
+          ProposalApprovalConfig,
+          ProposalStageHistory,
+          WorkOrder,
+          Document,
+          Negotiation,
+          Approval,
+          Agreement,
+          AgreementStageHistory,
+          AgreementActivity,
+          AgreementApprovalConfig,
+          SLAConfig,
+          Notification,
+        ],
         synchronize: configService.get('NODE_ENV') === 'development',
         logging: configService.get('NODE_ENV') === 'development',
         // Enable SSL for production Postgres (Neon requires sslmode=require)
-        ssl: configService.get('NODE_ENV') === 'production' ? { rejectUnauthorized: false } : false,
+        ssl:
+          configService.get('NODE_ENV') === 'production'
+            ? { rejectUnauthorized: false }
+            : false,
       }),
       inject: [ConfigService],
     }),

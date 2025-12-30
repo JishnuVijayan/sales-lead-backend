@@ -30,7 +30,7 @@ async function backfillLeadStageDates() {
 
       // Estimate stage dates based on created date and current status
       // This is a rough estimation - adjust intervals as needed
-      
+
       switch (lead.status) {
         case LeadStatus.WON:
           if (!lead.wonDate) {
@@ -41,21 +41,33 @@ async function backfillLeadStageDates() {
           }
           if (!lead.negotiationDate) {
             // Estimate negotiation started 5 days before won
-            lead.negotiationDate = new Date(lead.wonDate.getTime() - 5 * 24 * 60 * 60 * 1000);
+            lead.negotiationDate = new Date(
+              lead.wonDate.getTime() - 5 * 24 * 60 * 60 * 1000,
+            );
             hasUpdates = true;
-            console.log(`   ✓ Set negotiationDate: ${lead.negotiationDate.toISOString()}`);
+            console.log(
+              `   ✓ Set negotiationDate: ${lead.negotiationDate.toISOString()}`,
+            );
           }
           if (!lead.proposalDate) {
             // Estimate proposal sent 7 days before negotiation
-            lead.proposalDate = new Date(lead.negotiationDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+            lead.proposalDate = new Date(
+              lead.negotiationDate.getTime() - 7 * 24 * 60 * 60 * 1000,
+            );
             hasUpdates = true;
-            console.log(`   ✓ Set proposalDate: ${lead.proposalDate.toISOString()}`);
+            console.log(
+              `   ✓ Set proposalDate: ${lead.proposalDate.toISOString()}`,
+            );
           }
           if (!lead.qualifiedDate) {
             // Estimate qualified 3 days after creation
-            lead.qualifiedDate = new Date(createdDate.getTime() + 3 * 24 * 60 * 60 * 1000);
+            lead.qualifiedDate = new Date(
+              createdDate.getTime() + 3 * 24 * 60 * 60 * 1000,
+            );
             hasUpdates = true;
-            console.log(`   ✓ Set qualifiedDate: ${lead.qualifiedDate.toISOString()}`);
+            console.log(
+              `   ✓ Set qualifiedDate: ${lead.qualifiedDate.toISOString()}`,
+            );
           }
           break;
 
@@ -63,17 +75,27 @@ async function backfillLeadStageDates() {
           if (!lead.negotiationDate) {
             lead.negotiationDate = new Date(); // Current date
             hasUpdates = true;
-            console.log(`   ✓ Set negotiationDate: ${lead.negotiationDate.toISOString()}`);
+            console.log(
+              `   ✓ Set negotiationDate: ${lead.negotiationDate.toISOString()}`,
+            );
           }
           if (!lead.proposalDate) {
-            lead.proposalDate = new Date(lead.negotiationDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+            lead.proposalDate = new Date(
+              lead.negotiationDate.getTime() - 7 * 24 * 60 * 60 * 1000,
+            );
             hasUpdates = true;
-            console.log(`   ✓ Set proposalDate: ${lead.proposalDate.toISOString()}`);
+            console.log(
+              `   ✓ Set proposalDate: ${lead.proposalDate.toISOString()}`,
+            );
           }
           if (!lead.qualifiedDate) {
-            lead.qualifiedDate = new Date(lead.proposalDate.getTime() - 5 * 24 * 60 * 60 * 1000);
+            lead.qualifiedDate = new Date(
+              lead.proposalDate.getTime() - 5 * 24 * 60 * 60 * 1000,
+            );
             hasUpdates = true;
-            console.log(`   ✓ Set qualifiedDate: ${lead.qualifiedDate.toISOString()}`);
+            console.log(
+              `   ✓ Set qualifiedDate: ${lead.qualifiedDate.toISOString()}`,
+            );
           }
           break;
 
@@ -81,12 +103,18 @@ async function backfillLeadStageDates() {
           if (!lead.proposalDate) {
             lead.proposalDate = new Date();
             hasUpdates = true;
-            console.log(`   ✓ Set proposalDate: ${lead.proposalDate.toISOString()}`);
+            console.log(
+              `   ✓ Set proposalDate: ${lead.proposalDate.toISOString()}`,
+            );
           }
           if (!lead.qualifiedDate) {
-            lead.qualifiedDate = new Date(lead.proposalDate.getTime() - 5 * 24 * 60 * 60 * 1000);
+            lead.qualifiedDate = new Date(
+              lead.proposalDate.getTime() - 5 * 24 * 60 * 60 * 1000,
+            );
             hasUpdates = true;
-            console.log(`   ✓ Set qualifiedDate: ${lead.qualifiedDate.toISOString()}`);
+            console.log(
+              `   ✓ Set qualifiedDate: ${lead.qualifiedDate.toISOString()}`,
+            );
           }
           break;
 
@@ -94,7 +122,9 @@ async function backfillLeadStageDates() {
           if (!lead.qualifiedDate) {
             lead.qualifiedDate = new Date();
             hasUpdates = true;
-            console.log(`   ✓ Set qualifiedDate: ${lead.qualifiedDate.toISOString()}`);
+            console.log(
+              `   ✓ Set qualifiedDate: ${lead.qualifiedDate.toISOString()}`,
+            );
           }
           break;
 
@@ -106,19 +136,31 @@ async function backfillLeadStageDates() {
           }
           // Backfill previous stages if they exist in history
           if (!lead.negotiationDate && lead.lostDate) {
-            lead.negotiationDate = new Date(lead.lostDate.getTime() - 5 * 24 * 60 * 60 * 1000);
+            lead.negotiationDate = new Date(
+              lead.lostDate.getTime() - 5 * 24 * 60 * 60 * 1000,
+            );
             hasUpdates = true;
-            console.log(`   ✓ Set negotiationDate: ${lead.negotiationDate.toISOString()}`);
+            console.log(
+              `   ✓ Set negotiationDate: ${lead.negotiationDate.toISOString()}`,
+            );
           }
           if (!lead.proposalDate && lead.negotiationDate) {
-            lead.proposalDate = new Date(lead.negotiationDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+            lead.proposalDate = new Date(
+              lead.negotiationDate.getTime() - 7 * 24 * 60 * 60 * 1000,
+            );
             hasUpdates = true;
-            console.log(`   ✓ Set proposalDate: ${lead.proposalDate.toISOString()}`);
+            console.log(
+              `   ✓ Set proposalDate: ${lead.proposalDate.toISOString()}`,
+            );
           }
           if (!lead.qualifiedDate && lead.proposalDate) {
-            lead.qualifiedDate = new Date(lead.proposalDate.getTime() - 5 * 24 * 60 * 60 * 1000);
+            lead.qualifiedDate = new Date(
+              lead.proposalDate.getTime() - 5 * 24 * 60 * 60 * 1000,
+            );
             hasUpdates = true;
-            console.log(`   ✓ Set qualifiedDate: ${lead.qualifiedDate.toISOString()}`);
+            console.log(
+              `   ✓ Set qualifiedDate: ${lead.qualifiedDate.toISOString()}`,
+            );
           }
           break;
 
@@ -126,7 +168,9 @@ async function backfillLeadStageDates() {
           if (!lead.dormantDate) {
             lead.dormantDate = new Date();
             hasUpdates = true;
-            console.log(`   ✓ Set dormantDate: ${lead.dormantDate.toISOString()}`);
+            console.log(
+              `   ✓ Set dormantDate: ${lead.dormantDate.toISOString()}`,
+            );
           }
           break;
 
@@ -151,9 +195,12 @@ async function backfillLeadStageDates() {
     console.log(`   ℹ️  Already had dates: ${leads.length - updated} leads`);
     console.log(`   📊 Total: ${leads.length} leads`);
     console.log('\n✨ Backfill completed successfully!');
-    console.log('\n💡 Note: Dates are estimated based on typical sales cycle patterns.');
-    console.log('   Adjust the intervals in the script if needed for more accuracy.\n');
-
+    console.log(
+      '\n💡 Note: Dates are estimated based on typical sales cycle patterns.',
+    );
+    console.log(
+      '   Adjust the intervals in the script if needed for more accuracy.\n',
+    );
   } catch (error) {
     console.error('❌ Error backfilling stage dates:', error);
   }

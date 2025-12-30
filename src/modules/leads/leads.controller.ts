@@ -1,6 +1,27 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, HttpCode, HttpStatus, UseGuards, Request, Put } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+  Request,
+  Put,
+} from '@nestjs/common';
 import { LeadsService } from './leads.service';
-import { CreateLeadDto, UpdateLeadDto, QualifyLeadDto, FilterLeadsDto, RequestQualificationDto, ApproveQualificationDto } from './dto/lead.dto';
+import {
+  CreateLeadDto,
+  UpdateLeadDto,
+  QualifyLeadDto,
+  FilterLeadsDto,
+  RequestQualificationDto,
+  ApproveQualificationDto,
+} from './dto/lead.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
@@ -83,22 +104,37 @@ export class LeadsController {
   claim(@Param('id') id: string, @Body('userId') userId: string) {
     return this.leadsService.claim(id, userId);
   }
-// Phase 2: New workflow endpoints
+  // Phase 2: New workflow endpoints
   @Put(':id/request-qualification')
   @HttpCode(HttpStatus.OK)
   @Roles(UserRole.ADMIN, UserRole.ACCOUNT_MANAGER)
-  requestQualification(@Param('id') id: string, @Body() requestDto: RequestQualificationDto, @Request() req) {
-    return this.leadsService.requestQualification(id, requestDto, req.user.userId);
+  requestQualification(
+    @Param('id') id: string,
+    @Body() requestDto: RequestQualificationDto,
+    @Request() req,
+  ) {
+    return this.leadsService.requestQualification(
+      id,
+      requestDto,
+      req.user.userId,
+    );
   }
 
   @Put(':id/approve-qualification')
   @HttpCode(HttpStatus.OK)
   @Roles(UserRole.ADMIN, UserRole.SALES_MANAGER)
-  approveQualification(@Param('id') id: string, @Body() approvalDto: ApproveQualificationDto, @Request() req) {
-    return this.leadsService.approveQualification(id, approvalDto, req.user.userId);
+  approveQualification(
+    @Param('id') id: string,
+    @Body() approvalDto: ApproveQualificationDto,
+    @Request() req,
+  ) {
+    return this.leadsService.approveQualification(
+      id,
+      approvalDto,
+      req.user.userId,
+    );
   }
 
-  
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id') id: string) {

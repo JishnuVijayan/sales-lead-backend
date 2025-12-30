@@ -1,5 +1,17 @@
-import { IsNotEmpty, IsNumber, IsOptional, IsString, IsDateString, IsEnum, Min, IsUUID } from 'class-validator';
-import { NegotiationStatus, NegotiationOutcome } from '../../../entities/negotiation.entity';
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsDateString,
+  IsEnum,
+  Min,
+  IsUUID,
+} from 'class-validator';
+import {
+  NegotiationStatus,
+  NegotiationOutcome,
+} from '../../../entities/negotiation.entity';
 
 export class CreateNegotiationDto {
   @IsUUID()

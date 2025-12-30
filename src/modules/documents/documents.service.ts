@@ -13,7 +13,11 @@ export class DocumentsService {
     private leadsService: LeadsService,
   ) {}
 
-  async create(createDocumentDto: CreateDocumentDto, file: Express.Multer.File, userId: string): Promise<Document> {
+  async create(
+    createDocumentDto: CreateDocumentDto,
+    file: Express.Multer.File,
+    userId: string,
+  ): Promise<Document> {
     const document = this.documentsRepository.create({
       ...createDocumentDto,
       fileName: file.originalname || 'unnamed-file',
@@ -53,10 +57,16 @@ export class DocumentsService {
     return document;
   }
 
-  async update(id: string, updateDocumentDto: UpdateDocumentDto): Promise<Document> {
+  async update(
+    id: string,
+    updateDocumentDto: UpdateDocumentDto,
+  ): Promise<Document> {
     const document = await this.findOne(id);
 
-    const updatedDocument = this.documentsRepository.merge(document, updateDocumentDto);
+    const updatedDocument = this.documentsRepository.merge(
+      document,
+      updateDocumentDto,
+    );
     return await this.documentsRepository.save(updatedDocument);
   }
 

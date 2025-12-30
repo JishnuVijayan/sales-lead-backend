@@ -24,9 +24,15 @@ async function checkAgreementDates() {
       console.log(`📄 Agreement: ${agreement.agreementNumber || agreement.id}`);
       console.log(`   Stage: ${agreement.stage}`);
       console.log(`   Created: ${agreement.createdDate}`);
-      console.log(`   Client Signed Date: ${agreement.clientSignedDate || 'NOT SET'}`);
-      console.log(`   Company Signed Date: ${agreement.companySignedDate || 'NOT SET'}`);
-      console.log(`   Company Signed By: ${agreement.companySignedById || 'NOT SET'}`);
+      console.log(
+        `   Client Signed Date: ${agreement.clientSignedDate || 'NOT SET'}`,
+      );
+      console.log(
+        `   Company Signed Date: ${agreement.companySignedDate || 'NOT SET'}`,
+      );
+      console.log(
+        `   Company Signed By: ${agreement.companySignedById || 'NOT SET'}`,
+      );
 
       // Get stage history
       const histories = await historyRepo.find({
@@ -36,14 +42,19 @@ async function checkAgreementDates() {
 
       console.log(`\n   📊 Stage History (${histories.length} entries):`);
       histories.forEach((h, idx) => {
-        console.log(`      ${idx + 1}. ${h.fromStage} → ${h.toStage} (${h.changedDate})`);
+        console.log(
+          `      ${idx + 1}. ${h.fromStage} → ${h.toStage} (${h.changedDate})`,
+        );
       });
 
       // Calculate cycle time
-      const signedDate = agreement.clientSignedDate || agreement.companySignedDate;
+      const signedDate =
+        agreement.clientSignedDate || agreement.companySignedDate;
       if (signedDate) {
         const cycleTime = Math.floor(
-          (new Date(signedDate).getTime() - new Date(agreement.createdDate).getTime()) / (1000 * 60 * 60 * 24)
+          (new Date(signedDate).getTime() -
+            new Date(agreement.createdDate).getTime()) /
+            (1000 * 60 * 60 * 24),
         );
         console.log(`\n   ⏱️  Total Cycle Time: ${cycleTime} days`);
       } else {
@@ -54,11 +65,14 @@ async function checkAgreementDates() {
     }
 
     // Check if we need to set signing dates
-    if (signedAgreements.some(a => !a.clientSignedDate && !a.companySignedDate)) {
+    if (
+      signedAgreements.some((a) => !a.clientSignedDate && !a.companySignedDate)
+    ) {
       console.log('⚠️  Some signed agreements are missing signing dates!');
-      console.log('💡 Signing dates should be set when the agreement is signed.\n');
+      console.log(
+        '💡 Signing dates should be set when the agreement is signed.\n',
+      );
     }
-
   } catch (error) {
     console.error('❌ Error:', error);
   }

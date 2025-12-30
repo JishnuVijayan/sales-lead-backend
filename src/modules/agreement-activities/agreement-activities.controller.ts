@@ -1,13 +1,29 @@
-import { Controller, Get, Post, Body, Param, Delete, Query, UseGuards, Patch, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Delete,
+  Query,
+  UseGuards,
+  Patch,
+  Request,
+} from '@nestjs/common';
 import { AgreementActivitiesService } from './agreement-activities.service';
-import { CreateAgreementActivityDto, CreateAgreementActivityCommentDto } from './dto/agreement-activity.dto';
+import {
+  CreateAgreementActivityDto,
+  CreateAgreementActivityCommentDto,
+} from './dto/agreement-activity.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { AgreementActivityType } from '../../entities/agreement-activity.entity';
 
 @Controller('agreement-activities')
 @UseGuards(JwtAuthGuard)
 export class AgreementActivitiesController {
-  constructor(private readonly agreementActivitiesService: AgreementActivitiesService) {}
+  constructor(
+    private readonly agreementActivitiesService: AgreementActivitiesService,
+  ) {}
 
   @Post()
   create(@Body() createDto: CreateAgreementActivityDto, @Request() req: any) {
@@ -15,7 +31,10 @@ export class AgreementActivitiesController {
   }
 
   @Post('comment')
-  createComment(@Body() dto: CreateAgreementActivityCommentDto, @Request() req: any) {
+  createComment(
+    @Body() dto: CreateAgreementActivityCommentDto,
+    @Request() req: any,
+  ) {
     return this.agreementActivitiesService.createComment(dto, req.user.id);
   }
 

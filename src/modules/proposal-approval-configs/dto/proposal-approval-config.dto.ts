@@ -1,4 +1,14 @@
-import { IsNotEmpty, IsUUID, IsEnum, IsString, IsOptional, IsInt, IsBoolean, IsArray, ValidateNested } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsUUID,
+  IsEnum,
+  IsString,
+  IsOptional,
+  IsInt,
+  IsBoolean,
+  IsArray,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApprovalType } from '../../../entities/proposal-approval-config.entity';
 

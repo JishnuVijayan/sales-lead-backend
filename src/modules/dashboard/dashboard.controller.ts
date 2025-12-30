@@ -16,7 +16,10 @@ export class DashboardController {
    */
   @Get('summary')
   async getDashboardSummary(@Request() req) {
-    return this.dashboardService.getDashboardSummary(req.user.userId, req.user.role);
+    return this.dashboardService.getDashboardSummary(
+      req.user.userId,
+      req.user.role,
+    );
   }
 
   /**
@@ -25,7 +28,10 @@ export class DashboardController {
    */
   @Get('pending-actions')
   async getPendingActions(@Request() req) {
-    return this.dashboardService.getPendingActions(req.user.userId, req.user.role);
+    return this.dashboardService.getPendingActions(
+      req.user.userId,
+      req.user.role,
+    );
   }
 
   /**
@@ -34,8 +40,13 @@ export class DashboardController {
    */
   @Get('team-performance')
   @Roles(UserRole.SALES_MANAGER, UserRole.ADMIN)
-  async getTeamPerformance(@Request() req, @Query('managerId') managerId?: string) {
-    return this.dashboardService.getTeamPerformance(managerId || req.user.userId);
+  async getTeamPerformance(
+    @Request() req,
+    @Query('managerId') managerId?: string,
+  ) {
+    return this.dashboardService.getTeamPerformance(
+      managerId || req.user.userId,
+    );
   }
 
   /**

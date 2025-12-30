@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { WorkOrdersService } from './work-orders.service';
 import { CreateWorkOrderDto, UpdateWorkOrderDto } from './dto/work-order.dto';
 
@@ -28,7 +38,10 @@ export class WorkOrdersController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateWorkOrderDto: UpdateWorkOrderDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateWorkOrderDto: UpdateWorkOrderDto,
+  ) {
     return this.workOrdersService.update(id, updateWorkOrderDto);
   }
 

@@ -6,10 +6,7 @@ import { LeadsController } from './leads.controller';
 import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Lead]),
-    NotificationsModule,
-  ],
+  imports: [TypeOrmModule.forFeature([Lead]), NotificationsModule],
   controllers: [LeadsController],
   providers: [LeadsService],
   exports: [LeadsService],

@@ -1,7 +1,16 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
+  OneToMany,
+} from 'typeorm';
 import { Lead } from './lead.entity';
 import { User } from './user.entity';
 import { ProposalItem } from './proposal-item.entity';
+import { ProposalStageHistory } from './proposal-stage-history.entity';
 
 export enum ProposalStatus {
   DRAFT = 'Draft',
@@ -20,7 +29,7 @@ export class Proposal {
   @Column({ unique: true })
   proposalNumber: string;
 
-  @ManyToOne(() => Lead, lead => lead.proposals, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Lead, (lead) => lead.proposals, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'lead_id' })
   lead: Lead;
 
@@ -95,7 +104,10 @@ export class Proposal {
   @Column({ type: 'boolean', default: false })
   hasCustomApprovalFlow: boolean;
 
-  @OneToMany(() => ProposalItem, item => item.proposal, { cascade: true })
+  @Column({ type: 'boolean', default: false })
+  approvalInProgress: boolean;
+
+  @OneToMany(() => ProposalItem, (item) => item.proposal, { cascade: true })
   items: ProposalItem[];
 
   @OneToMany('ProposalDocument', 'proposal')
@@ -106,4 +118,7 @@ export class Proposal {
 
   @OneToMany('ProposalApprovalConfig', 'proposal')
   approvalConfigs: any[];
+
+  @OneToMany(() => ProposalStageHistory, (history) => history.proposal)
+  stageHistory: ProposalStageHistory[];
 }

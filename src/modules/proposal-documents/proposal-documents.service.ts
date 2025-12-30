@@ -1,10 +1,20 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ProposalDocument, UploadReason } from '../../entities/proposal-document.entity';
+import {
+  ProposalDocument,
+  UploadReason,
+} from '../../entities/proposal-document.entity';
 import { Document } from '../../entities/document.entity';
 import { Proposal } from '../../entities/proposal.entity';
-import { CreateProposalDocumentDto, UpdateProposalDocumentDto } from './dto/proposal-document.dto';
+import {
+  CreateProposalDocumentDto,
+  UpdateProposalDocumentDto,
+} from './dto/proposal-document.dto';
 import { DocumentsService } from '../documents/documents.service';
 
 @Injectable()
@@ -19,7 +29,10 @@ export class ProposalDocumentsService {
     private documentsService: DocumentsService,
   ) {}
 
-  async create(createDto: CreateProposalDocumentDto, userId: string): Promise<ProposalDocument> {
+  async create(
+    createDto: CreateProposalDocumentDto,
+    userId: string,
+  ): Promise<ProposalDocument> {
     const proposal = await this.proposalsRepository.findOne({
       where: { id: createDto.proposalId },
     });
@@ -32,7 +45,7 @@ export class ProposalDocumentsService {
     if (createDto.isCurrentVersion) {
       await this.proposalDocumentsRepository.update(
         { proposalId: createDto.proposalId, isCurrentVersion: true },
-        { isCurrentVersion: false }
+        { isCurrentVersion: false },
       );
     }
 
@@ -40,7 +53,7 @@ export class ProposalDocumentsService {
     if (createDto.isFinalVersion) {
       await this.proposalDocumentsRepository.update(
         { proposalId: createDto.proposalId, isFinalVersion: true },
-        { isFinalVersion: false }
+        { isFinalVersion: false },
       );
     }
 
@@ -54,10 +67,14 @@ export class ProposalDocumentsService {
 
     // Update proposal's current/final document references
     if (saved.isCurrentVersion) {
-      await this.proposalsRepository.update(proposal.id, { currentDocumentId: saved.documentId });
+      await this.proposalsRepository.update(proposal.id, {
+        currentDocumentId: saved.documentId,
+      });
     }
     if (saved.isFinalVersion) {
-      await this.proposalsRepository.update(proposal.id, { finalDocumentId: saved.documentId });
+      await this.proposalsRepository.update(proposal.id, {
+        finalDocumentId: saved.documentId,
+      });
     }
 
     return this.findOne(saved.id);
@@ -93,7 +110,7 @@ export class ProposalDocumentsService {
     // Unmark all previous documents as current
     await this.proposalDocumentsRepository.update(
       { proposalId: proposalId, isCurrentVersion: true },
-      { isCurrentVersion: false }
+      { isCurrentVersion: false },
     );
 
     // Create ProposalDocument entry
@@ -111,10 +128,14 @@ export class ProposalDocumentsService {
     const saved = await this.proposalDocumentsRepository.save(proposalDocument);
 
     // Update proposal reference
-    await this.proposalsRepository.update(proposalId, { currentDocumentId: document.id });
+    await this.proposalsRepository.update(proposalId, {
+      currentDocumentId: document.id,
+    });
 
     if (uploadReason === UploadReason.FINAL) {
-      await this.proposalsRepository.update(proposalId, { finalDocumentId: document.id });
+      await this.proposalsRepository.update(proposalId, {
+        finalDocumentId: document.id,
+      });
     }
 
     return this.findOne(saved.id);
@@ -142,14 +163,17 @@ export class ProposalDocumentsService {
     return proposalDocument;
   }
 
-  async update(id: string, updateDto: UpdateProposalDocumentDto): Promise<ProposalDocument> {
+  async update(
+    id: string,
+    updateDto: UpdateProposalDocumentDto,
+  ): Promise<ProposalDocument> {
     const proposalDocument = await this.findOne(id);
 
     // If marking as current, unmark all others
     if (updateDto.isCurrentVersion) {
       await this.proposalDocumentsRepository.update(
         { proposalId: proposalDocument.proposalId, isCurrentVersion: true },
-        { isCurrentVersion: false }
+        { isCurrentVersion: false },
       );
 
       await this.proposalsRepository.update(proposalDocument.proposalId, {
@@ -161,7 +185,7 @@ export class ProposalDocumentsService {
     if (updateDto.isFinalVersion) {
       await this.proposalDocumentsRepository.update(
         { proposalId: proposalDocument.proposalId, isFinalVersion: true },
-        { isFinalVersion: false }
+        { isFinalVersion: false },
       );
 
       await this.proposalsRepository.update(proposalDocument.proposalId, {
@@ -183,10 +207,10 @@ export class ProposalDocumentsService {
 
   async remove(id: string): Promise<void> {
     const proposalDocument = await this.findOne(id);
-    
+
     // Also delete the actual document
     await this.documentsService.remove(proposalDocument.documentId);
-    
+
     await this.proposalDocumentsRepository.remove(proposalDocument);
   }
 }

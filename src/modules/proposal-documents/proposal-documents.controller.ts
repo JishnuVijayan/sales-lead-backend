@@ -1,31 +1,55 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile, Query, HttpCode, HttpStatus, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseInterceptors,
+  UploadedFile,
+  Query,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { ProposalDocumentsService } from './proposal-documents.service';
-import { CreateProposalDocumentDto, UpdateProposalDocumentDto, UploadProposalDocumentDto } from './dto/proposal-document.dto';
+import {
+  CreateProposalDocumentDto,
+  UpdateProposalDocumentDto,
+  UploadProposalDocumentDto,
+} from './dto/proposal-document.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { UploadReason } from '../../entities/proposal-document.entity';
 
 @Controller('proposal-documents')
 @UseGuards(JwtAuthGuard)
 export class ProposalDocumentsController {
-  constructor(private readonly proposalDocumentsService: ProposalDocumentsService) {}
+  constructor(
+    private readonly proposalDocumentsService: ProposalDocumentsService,
+  ) {}
 
   @Post('upload')
-  @UseInterceptors(FileInterceptor('file', {
-    storage: diskStorage({
-      destination: './uploads',
-      filename: (req, file, callback) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const ext = file.originalname ? extname(file.originalname) : '';
-        callback(null, `proposal-${uniqueSuffix}${ext}`);
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: './uploads',
+        filename: (req, file, callback) => {
+          const uniqueSuffix =
+            Date.now() + '-' + Math.round(Math.random() * 1e9);
+          const ext = file.originalname ? extname(file.originalname) : '';
+          callback(null, `proposal-${uniqueSuffix}${ext}`);
+        },
+      }),
+      limits: {
+        fileSize: 20 * 1024 * 1024, // 20MB for proposals
       },
     }),
-    limits: {
-      fileSize: 20 * 1024 * 1024, // 20MB for proposals
-    },
-  }))
+  )
   @HttpCode(HttpStatus.CREATED)
   async uploadFile(
     @UploadedFile() file: Express.Multer.File,
@@ -69,7 +93,10 @@ export class ProposalDocumentsController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateDto: UpdateProposalDocumentDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateDto: UpdateProposalDocumentDto,
+  ) {
     return this.proposalDocumentsService.update(id, updateDto);
   }
 

@@ -1,13 +1,31 @@
-import { Controller, Get, Post, Body, Param, Delete, Query, HttpCode, HttpStatus, UseGuards, Request, Patch } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Delete,
+  Query,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+  Request,
+  Patch,
+} from '@nestjs/common';
 import { ProposalActivitiesService } from './proposal-activities.service';
-import { CreateProposalActivityDto, CreateProposalActivityCommentDto } from './dto/proposal-activity.dto';
+import {
+  CreateProposalActivityDto,
+  CreateProposalActivityCommentDto,
+} from './dto/proposal-activity.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { ProposalActivityType } from '../../entities/proposal-activity.entity';
 
 @Controller('proposal-activities')
 @UseGuards(JwtAuthGuard)
 export class ProposalActivitiesController {
-  constructor(private readonly proposalActivitiesService: ProposalActivitiesService) {}
+  constructor(
+    private readonly proposalActivitiesService: ProposalActivitiesService,
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -17,7 +35,10 @@ export class ProposalActivitiesController {
 
   @Post('comment')
   @HttpCode(HttpStatus.CREATED)
-  createComment(@Body() dto: CreateProposalActivityCommentDto, @Request() req: any) {
+  createComment(
+    @Body() dto: CreateProposalActivityCommentDto,
+    @Request() req: any,
+  ) {
     return this.proposalActivitiesService.createComment(dto, req.user.id);
   }
 

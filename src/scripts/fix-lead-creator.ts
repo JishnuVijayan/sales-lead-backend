@@ -1,13 +1,13 @@
 import { DataSource } from 'typeorm';
-import { 
-  Lead, 
-  User, 
-  LeadActivity, 
-  Proposal, 
-  ProposalItem, 
-  WorkOrder, 
-  Document, 
-  Negotiation 
+import {
+  Lead,
+  User,
+  LeadActivity,
+  Proposal,
+  ProposalItem,
+  WorkOrder,
+  Document,
+  Negotiation,
 } from '../entities';
 
 const AppDataSource = new DataSource({
@@ -17,7 +17,16 @@ const AppDataSource = new DataSource({
   username: 'postgres',
   password: 'ULTS@13032003',
   database: 'lead_sales',
-  entities: [Lead, User, LeadActivity, Proposal, ProposalItem, WorkOrder, Document, Negotiation],
+  entities: [
+    Lead,
+    User,
+    LeadActivity,
+    Proposal,
+    ProposalItem,
+    WorkOrder,
+    Document,
+    Negotiation,
+  ],
   synchronize: false,
 });
 
@@ -33,7 +42,7 @@ async function fixLeadCreator() {
   const leadId = '2aadb49b-1e60-4e38-8b60-2c08b9b7ef7e';
 
   const lead = await leadRepository.findOne({ where: { id: leadId } });
-  
+
   if (!lead) {
     console.log('❌ Lead not found');
     await AppDataSource.destroy();
@@ -44,7 +53,7 @@ async function fixLeadCreator() {
     id: lead.id,
     name: lead.name,
     createdById: lead.createdById,
-    assignedToId: lead.assignedToId
+    assignedToId: lead.assignedToId,
   });
 
   // Set John Smith as the creator
@@ -59,7 +68,7 @@ async function fixLeadCreator() {
     id: updatedLead!.id,
     name: updatedLead!.name,
     createdById: updatedLead!.createdById,
-    assignedToId: updatedLead!.assignedToId
+    assignedToId: updatedLead!.assignedToId,
   });
 
   await AppDataSource.destroy();

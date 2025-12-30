@@ -4,9 +4,13 @@ import { Approval } from '../../entities/approval.entity';
 import { User } from '../../entities/user.entity';
 import { ApprovalsService } from './approvals.service';
 import { ApprovalsController } from './approvals.controller';
+import { ProposalActivitiesModule } from '../proposal-activities/proposal-activities.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Approval, User])],
+  imports: [
+    TypeOrmModule.forFeature([Approval, User]),
+    ProposalActivitiesModule,
+  ],
   providers: [ApprovalsService],
   controllers: [ApprovalsController],
   exports: [ApprovalsService],

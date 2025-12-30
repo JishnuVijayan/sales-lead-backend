@@ -35,7 +35,8 @@ async function updateEnums() {
         await client.query(statement);
         console.log('✓', statement);
       } catch (error: any) {
-        if (error.code === '23505') { // Duplicate value
+        if (error.code === '23505') {
+          // Duplicate value
           console.log('⊚ Value already exists:', statement);
         } else {
           console.error('✗ Error:', statement, error.message);
@@ -45,14 +46,20 @@ async function updateEnums() {
 
     // Verify
     const fromResult = await client.query(
-      "SELECT enumlabel FROM pg_enum WHERE enumtypid = 'agreement_stage_history_fromstage_enum'::regtype ORDER BY enumsortorder"
+      "SELECT enumlabel FROM pg_enum WHERE enumtypid = 'agreement_stage_history_fromstage_enum'::regtype ORDER BY enumsortorder",
     );
-    console.log('\nFromStage enum values:', fromResult.rows.map(r => r.enumlabel));
+    console.log(
+      '\nFromStage enum values:',
+      fromResult.rows.map((r) => r.enumlabel),
+    );
 
     const toResult = await client.query(
-      "SELECT enumlabel FROM pg_enum WHERE enumtypid = 'agreement_stage_history_tostage_enum'::regtype ORDER BY enumsortorder"
+      "SELECT enumlabel FROM pg_enum WHERE enumtypid = 'agreement_stage_history_tostage_enum'::regtype ORDER BY enumsortorder",
     );
-    console.log('ToStage enum values:', toResult.rows.map(r => r.enumlabel));
+    console.log(
+      'ToStage enum values:',
+      toResult.rows.map((r) => r.enumlabel),
+    );
 
     console.log('\n✓ Enum update completed successfully');
   } catch (error) {

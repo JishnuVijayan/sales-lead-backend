@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { Proposal } from './proposal.entity';
 import { Lead } from './lead.entity';
 import { User } from './user.entity';
@@ -12,6 +19,8 @@ export enum ProposalActivityType {
   SENT_FOR_APPROVAL = 'Sent For Approval',
   APPROVAL_RECEIVED = 'Approval Received',
   APPROVAL_REJECTED = 'Approval Rejected',
+  APPROVAL_RETURNED = 'Approval Returned',
+  APPROVAL_SKIPPED = 'Approval Skipped',
   SENT_TO_CLIENT = 'Sent To Client',
   CLIENT_VIEWED = 'Client Viewed',
   VERSION_CREATED = 'Version Created',
@@ -23,7 +32,9 @@ export class ProposalActivity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Proposal, proposal => proposal.activities, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Proposal, (proposal) => proposal.activities, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'proposal_id' })
   proposal: Proposal;
 

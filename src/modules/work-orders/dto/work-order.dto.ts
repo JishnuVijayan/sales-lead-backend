@@ -1,4 +1,11 @@
-import { IsString, IsEnum, IsOptional, IsUUID, IsNumber, IsDateString } from 'class-validator';
+import {
+  IsString,
+  IsEnum,
+  IsOptional,
+  IsUUID,
+  IsNumber,
+  IsDateString,
+} from 'class-validator';
 import { WorkOrderStatus } from '../../../entities';
 import { Transform } from 'class-transformer';
 
@@ -8,7 +15,7 @@ export class CreateWorkOrderDto {
 
   @IsUUID()
   @IsOptional()
-  @Transform(({ value }) => value === '' ? undefined : value)
+  @Transform(({ value }) => (value === '' ? undefined : value))
   negotiationId?: string;
 
   @IsString()
@@ -36,12 +43,12 @@ export class CreateWorkOrderDto {
 
   @IsUUID()
   @IsOptional()
-  @Transform(({ value }) => value === '' ? undefined : value)
+  @Transform(({ value }) => (value === '' ? undefined : value))
   assignedToOperationsId?: string;
 
   @IsUUID()
   @IsOptional()
-  @Transform(({ value }) => value === '' ? undefined : value)
+  @Transform(({ value }) => (value === '' ? undefined : value))
   assignedToAccountsId?: string;
 
   @IsUUID()
@@ -56,7 +63,7 @@ export class CreateWorkOrderDto {
 export class UpdateWorkOrderDto {
   @IsUUID()
   @IsOptional()
-  @Transform(({ value }) => value === '' ? undefined : value)
+  @Transform(({ value }) => (value === '' ? undefined : value))
   negotiationId?: string;
 
   @IsString()
@@ -85,12 +92,12 @@ export class UpdateWorkOrderDto {
 
   @IsUUID()
   @IsOptional()
-  @Transform(({ value }) => value === '' ? undefined : value)
+  @Transform(({ value }) => (value === '' ? undefined : value))
   assignedToOperationsId?: string;
 
   @IsUUID()
   @IsOptional()
-  @Transform(({ value }) => value === '' ? undefined : value)
+  @Transform(({ value }) => (value === '' ? undefined : value))
   assignedToAccountsId?: string;
 
   @IsString()

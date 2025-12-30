@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Patch, Param, Query, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Param,
+  Query,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { NotificationFilterDto } from './dto/notification.dto';
@@ -44,11 +53,11 @@ export class NotificationsController {
       recipientId: req.user.userId,
       status: NotificationStatus.PENDING,
     });
-    
+
     for (const notification of notifications) {
       await this.notificationsService.markAsRead(notification.id);
     }
-    
+
     return { message: 'All notifications marked as read' };
   }
 

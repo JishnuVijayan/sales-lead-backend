@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { Lead } from './lead.entity';
 import { User } from './user.entity';
 import { Negotiation } from './negotiation.entity';
@@ -18,7 +25,7 @@ export class WorkOrder {
   @Column({ unique: true })
   workOrderNumber: string;
 
-  @ManyToOne(() => Lead, lead => lead.workOrders, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Lead, (lead) => lead.workOrders, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'lead_id' })
   lead: Lead;
 

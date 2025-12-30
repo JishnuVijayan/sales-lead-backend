@@ -1,6 +1,18 @@
-import { IsString, IsOptional, IsEnum, IsNumber, IsDate, IsBoolean, IsUUID } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsNumber,
+  IsDate,
+  IsBoolean,
+  IsUUID,
+} from 'class-validator';
 import { Type } from 'class-transformer';
-import { AgreementType, AgreementStage, PaymentTerms } from '../../../entities/agreement.entity';
+import {
+  AgreementType,
+  AgreementStage,
+  PaymentTerms,
+} from '../../../entities/agreement.entity';
 
 export class CreateAgreementDto {
   @IsUUID()

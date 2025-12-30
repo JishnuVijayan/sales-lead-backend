@@ -1,4 +1,10 @@
-import { IsString, IsEnum, IsOptional, IsUUID, IsNumber } from 'class-validator';
+import {
+  IsString,
+  IsEnum,
+  IsOptional,
+  IsUUID,
+  IsNumber,
+} from 'class-validator';
 import { DocumentType } from '../../../entities';
 
 export class CreateDocumentDto {

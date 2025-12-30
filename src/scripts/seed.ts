@@ -97,7 +97,9 @@ async function seed() {
         await usersService.create(userData);
         console.log(`✓ Created user: ${userData.email} (${userData.role})`);
       } else {
-        console.log(`○ User already exists: ${userData.email} (${userData.role})`);
+        console.log(
+          `○ User already exists: ${userData.email} (${userData.role})`,
+        );
       }
     } catch (error) {
       console.error(`✗ Error creating user ${userData.email}:`, error.message);

@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { User } from './user.entity';
 
 export enum NotificationType {
@@ -9,7 +16,7 @@ export enum NotificationType {
   LEAD_ESCALATION = 'Lead Escalation',
   LEAD_QUALIFIED = 'Lead Qualified',
   LEAD_QUALIFICATION_REJECTED = 'Lead Qualification Rejected',
-  
+
   // Proposal & Negotiation Notifications
   PROPOSAL_CREATED = 'Proposal Created',
   PROPOSAL_APPROVAL_REQUIRED = 'Proposal Approval Required',
@@ -18,18 +25,18 @@ export enum NotificationType {
   PROPOSAL_SENT_TO_CLIENT = 'Proposal Sent to Client',
   NEGOTIATION_STARTED = 'Negotiation Started',
   NEGOTIATION_UPDATED = 'Negotiation Updated',
-  
+
   // Work Order Notifications
   WORK_ORDER_CREATED = 'Work Order Created',
   WORK_ORDER_ASSIGNED = 'Work Order Assigned',
   LEAD_WON = 'Lead Won',
   LEAD_LOST = 'Lead Lost',
-  
+
   // Agreement Lifecycle Notifications
   AGREEMENT_CREATED = 'Agreement Created',
   AGREEMENT_STAGE_CHANGE = 'Agreement Stage Changed',
   AGREEMENT_STAGE_DELAY = 'Agreement Stage Delay',
-  
+
   // Agreement Approval Notifications
   LEGAL_REVIEW_REQUIRED = 'Legal Review Required',
   LEGAL_REVIEW_COMPLETED = 'Legal Review Completed',
@@ -45,18 +52,18 @@ export enum NotificationType {
   CEO_APPROVAL_COMPLETED = 'CEO Approval Completed',
   ULCCS_APPROVAL_PENDING = 'ULCCS Approval Pending',
   ULCCS_APPROVAL_COMPLETED = 'ULCCS Approval Completed',
-  
+
   // Signing Notifications
   AGREEMENT_READY_FOR_SIGNING = 'Agreement Ready for Signing',
   COMPANY_SIGNED = 'Company Signed',
   CLIENT_SIGNED = 'Client Signed',
   AGREEMENT_FULLY_EXECUTED = 'Agreement Fully Executed',
-  
+
   // SLA & Escalation Notifications
   SLA_WARNING = 'SLA Warning',
   SLA_CRITICAL = 'SLA Critical',
   SLA_BREACHED = 'SLA Breached',
-  
+
   // Activity Notifications
   ACTIVITY_ADDED = 'Activity Added',
   COMMENT_ADDED = 'Comment Added',

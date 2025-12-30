@@ -1,4 +1,10 @@
-import { IsNotEmpty, IsUUID, IsEnum, IsString, IsOptional } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsUUID,
+  IsEnum,
+  IsString,
+  IsOptional,
+} from 'class-validator';
 import { ProposalActivityType } from '../../../entities/proposal-activity.entity';
 
 export class CreateProposalActivityDto {

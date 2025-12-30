@@ -6,9 +6,7 @@ import { AgreementActivity } from '../../entities/agreement-activity.entity';
 import { Agreement } from '../../entities/agreement.entity';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([AgreementActivity, Agreement]),
-  ],
+  imports: [TypeOrmModule.forFeature([AgreementActivity, Agreement])],
   controllers: [AgreementActivitiesController],
   providers: [AgreementActivitiesService],
   exports: [AgreementActivitiesService],

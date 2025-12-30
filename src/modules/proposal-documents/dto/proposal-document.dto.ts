@@ -1,4 +1,12 @@
-import { IsNotEmpty, IsUUID, IsEnum, IsString, IsOptional, IsInt, IsBoolean } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsUUID,
+  IsEnum,
+  IsString,
+  IsOptional,
+  IsInt,
+  IsBoolean,
+} from 'class-validator';
 import { UploadReason } from '../../../entities/proposal-document.entity';
 
 export class CreateProposalDocumentDto {

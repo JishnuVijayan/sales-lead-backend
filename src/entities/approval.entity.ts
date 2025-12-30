@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { User } from './user.entity';
 import { Lead } from './lead.entity';
 
@@ -74,7 +82,11 @@ export class Approval {
   @Column('text', { nullable: true })
   comments: string;
 
-  @Column({ name: 'requested_date', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({
+    name: 'requested_date',
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+  })
   requestedDate: Date;
 
   @Column({ name: 'responded_date', type: 'timestamp', nullable: true })

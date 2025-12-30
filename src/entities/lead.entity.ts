@@ -1,4 +1,13 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  OneToMany,
+  JoinColumn,
+} from 'typeorm';
 import { LeadActivity } from './lead-activity.entity';
 import { Proposal } from './proposal.entity';
 import { WorkOrder } from './work-order.entity';
@@ -117,7 +126,11 @@ export class Lead {
   @CreateDateColumn({ name: 'created_date' })
   createdDate: Date;
 
-  @Column({ name: 'last_action_date', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({
+    name: 'last_action_date',
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+  })
   lastActionDate: Date;
 
   @UpdateDateColumn({ name: 'updated_date' })
@@ -178,7 +191,13 @@ export class Lead {
   @Column({ name: 'expected_closure_date', type: 'date', nullable: true })
   expectedClosureDate: Date;
 
-  @Column({ name: 'actual_value', type: 'decimal', precision: 15, scale: 2, nullable: true })
+  @Column({
+    name: 'actual_value',
+    type: 'decimal',
+    precision: 15,
+    scale: 2,
+    nullable: true,
+  })
   actualValue: number;
 
   @Column({ name: 'competitor_info', type: 'text', nullable: true })
@@ -190,19 +209,19 @@ export class Lead {
   @Column({ name: 'decision_maker_contact', nullable: true })
   decisionMakerContact: string;
 
-  @OneToMany(() => LeadActivity, activity => activity.lead)
+  @OneToMany(() => LeadActivity, (activity) => activity.lead)
   activities: LeadActivity[];
 
-  @OneToMany(() => Proposal, proposal => proposal.lead)
+  @OneToMany(() => Proposal, (proposal) => proposal.lead)
   proposals: Proposal[];
 
-  @OneToMany(() => Document, document => document.lead)
+  @OneToMany(() => Document, (document) => document.lead)
   documents: Document[];
 
-  @OneToMany(() => WorkOrder, workOrder => workOrder.lead)
+  @OneToMany(() => WorkOrder, (workOrder) => workOrder.lead)
   workOrders: WorkOrder[];
 
-  @OneToMany(() => Negotiation, negotiation => negotiation.lead)
+  @OneToMany(() => Negotiation, (negotiation) => negotiation.lead)
   negotiations: Negotiation[];
 
   // Virtual fields for aging calculation

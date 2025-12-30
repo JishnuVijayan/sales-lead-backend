@@ -4,7 +4,10 @@ import { Repository } from 'typeorm';
 import { ProposalApprovalConfig } from '../../entities/proposal-approval-config.entity';
 import { Proposal } from '../../entities/proposal.entity';
 import { User } from '../../entities/user.entity';
-import { CreateProposalApprovalConfigDto, DefineProposalApprovalFlowDto } from './dto/proposal-approval-config.dto';
+import {
+  CreateProposalApprovalConfigDto,
+  DefineProposalApprovalFlowDto,
+} from './dto/proposal-approval-config.dto';
 
 @Injectable()
 export class ProposalApprovalConfigsService {
@@ -17,7 +20,10 @@ export class ProposalApprovalConfigsService {
     private usersRepository: Repository<User>,
   ) {}
 
-  async create(createDto: CreateProposalApprovalConfigDto, userId: string): Promise<ProposalApprovalConfig> {
+  async create(
+    createDto: CreateProposalApprovalConfigDto,
+    userId: string,
+  ): Promise<ProposalApprovalConfig> {
     const proposal = await this.proposalsRepository.findOne({
       where: { id: createDto.proposalId },
     });
@@ -34,7 +40,10 @@ export class ProposalApprovalConfigsService {
     return await this.configsRepository.save(config);
   }
 
-  async defineApprovalFlow(dto: DefineProposalApprovalFlowDto, userId: string): Promise<ProposalApprovalConfig[]> {
+  async defineApprovalFlow(
+    dto: DefineProposalApprovalFlowDto,
+    userId: string,
+  ): Promise<ProposalApprovalConfig[]> {
     const proposal = await this.proposalsRepository.findOne({
       where: { id: dto.proposalId },
     });
@@ -48,7 +57,7 @@ export class ProposalApprovalConfigsService {
 
     // Create new approval configs
     const configs: ProposalApprovalConfig[] = [];
-    
+
     for (const approverConfig of dto.approvers) {
       const config = this.configsRepository.create({
         proposalId: dto.proposalId,
@@ -56,18 +65,23 @@ export class ProposalApprovalConfigsService {
         approverRole: approverConfig.approverRole,
         departmentId: approverConfig.departmentId,
         sequenceOrder: approverConfig.sequenceOrder,
-        isMandatory: approverConfig.isMandatory !== undefined ? approverConfig.isMandatory : true,
+        isMandatory:
+          approverConfig.isMandatory !== undefined
+            ? approverConfig.isMandatory
+            : true,
         approvalType: approverConfig.approvalType,
         createdById: userId,
       });
-      
+
       configs.push(config);
     }
 
     const savedConfigs = await this.configsRepository.save(configs);
 
     // Mark proposal as having custom approval flow
-    await this.proposalsRepository.update(dto.proposalId, { hasCustomApprovalFlow: true });
+    await this.proposalsRepository.update(dto.proposalId, {
+      hasCustomApprovalFlow: true,
+    });
 
     return savedConfigs;
   }

@@ -1,4 +1,12 @@
-import { IsString, IsEmail, IsEnum, IsOptional, IsNumber, IsBoolean, IsUUID } from 'class-validator';
+import {
+  IsString,
+  IsEmail,
+  IsEnum,
+  IsOptional,
+  IsNumber,
+  IsBoolean,
+  IsUUID,
+} from 'class-validator';
 import { Transform } from 'class-transformer';
 import { LeadSource, LeadStatus } from '../../../entities';
 
