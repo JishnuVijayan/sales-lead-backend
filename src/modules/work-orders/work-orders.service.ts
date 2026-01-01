@@ -22,15 +22,6 @@ export class WorkOrdersService {
   ) {}
 
   async create(createWorkOrderDto: CreateWorkOrderDto): Promise<WorkOrder> {
-    // Check if a work order already exists for this lead
-    const existingWorkOrder = await this.workOrdersRepository.findOne({
-      where: { leadId: createWorkOrderDto.leadId },
-    });
-
-    if (existingWorkOrder) {
-      throw new Error('A work order already exists for this lead');
-    }
-
     // Generate work order number
     const count = await this.workOrdersRepository.count();
     const workOrderNumber = `WO-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
@@ -42,19 +33,21 @@ export class WorkOrdersService {
 
     const savedWorkOrder = await this.workOrdersRepository.save(workOrder);
 
-    // Mark lead as converted
-    await this.leadsService.convertToWon(createWorkOrderDto.leadId);
+    // Mark lead as converted only if not already converted
+    const lead = await this.leadsService.findOne(createWorkOrderDto.leadId);
+    if (!lead.isConverted) {
+      await this.leadsService.convertToWon(createWorkOrderDto.leadId);
 
-    // Send lead won notification
-    try {
-      const lead = await this.leadsService.findOne(createWorkOrderDto.leadId);
-      await this.notificationsService.notifyLeadWon(
-        createWorkOrderDto.leadId,
-        lead.organization || lead.name,
-        savedWorkOrder.id,
-      );
-    } catch (error) {
-      console.error('Failed to send notification:', error);
+      // Send lead won notification only for first work order
+      try {
+        await this.notificationsService.notifyLeadWon(
+          createWorkOrderDto.leadId,
+          lead.organization || lead.name,
+          savedWorkOrder.id,
+        );
+      } catch (error) {
+        console.error('Failed to send notification:', error);
+      }
     }
 
     // Phase 2: Auto-create Agreement when Work Order is created
@@ -83,7 +76,6 @@ export class WorkOrdersService {
           contractValue: workOrder.orderValue,
           paymentTerms: PaymentTerms.NET_30,
           scopeOfWork: workOrder.description,
-          assignedToId: workOrder.assignedToOperationsId,
         },
         userId,
       );
@@ -102,8 +94,6 @@ export class WorkOrdersService {
     const [workOrders, total] = await this.workOrdersRepository.findAndCount({
       relations: [
         'lead',
-        'assignedToOperations',
-        'assignedToAccounts',
         'createdBy',
       ],
       order: { createdDate: 'DESC' },
@@ -125,7 +115,7 @@ export class WorkOrdersService {
   }> {
     const [workOrders, total] = await this.workOrdersRepository.findAndCount({
       where: { leadId },
-      relations: ['assignedToOperations', 'assignedToAccounts', 'createdBy'],
+      relations: ['createdBy'],
       order: { createdDate: 'DESC' },
     });
 
@@ -142,8 +132,6 @@ export class WorkOrdersService {
       where: { id },
       relations: [
         'lead',
-        'assignedToOperations',
-        'assignedToAccounts',
         'createdBy',
       ],
     });

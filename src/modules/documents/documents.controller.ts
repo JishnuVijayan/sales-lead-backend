@@ -52,7 +52,7 @@ export class DocumentsController {
   async uploadFile(
     @UploadedFile() file: Express.Multer.File,
     @Body()
-    body: { leadId: string; description?: string; documentType?: string },
+    body: { leadId: string; workOrderId?: string; description?: string; documentType?: string },
     @Request() req: any,
   ) {
     if (!file) {
@@ -62,6 +62,7 @@ export class DocumentsController {
     const userId = req.user.id;
     const createDocumentDto: CreateDocumentDto = {
       leadId: body.leadId,
+      workOrderId: body.workOrderId || undefined,
       description: body.description || undefined,
       documentType: (body.documentType as any) || undefined,
     };
@@ -71,6 +72,11 @@ export class DocumentsController {
   @Get()
   findAll(@Query('leadId') leadId?: string) {
     return this.documentsService.findAll(leadId);
+  }
+
+  @Get('work-order/:workOrderId')
+  findByWorkOrder(@Param('workOrderId') workOrderId: string) {
+    return this.documentsService.findByWorkOrder(workOrderId);
   }
 
   @Get('lead/:leadId')

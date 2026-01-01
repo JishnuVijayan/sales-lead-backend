@@ -43,16 +43,6 @@ export class CreateWorkOrderDto {
 
   @IsUUID()
   @IsOptional()
-  @Transform(({ value }) => (value === '' ? undefined : value))
-  assignedToOperationsId?: string;
-
-  @IsUUID()
-  @IsOptional()
-  @Transform(({ value }) => (value === '' ? undefined : value))
-  assignedToAccountsId?: string;
-
-  @IsUUID()
-  @IsOptional()
   createdById?: string;
 
   @IsString()
@@ -89,16 +79,6 @@ export class UpdateWorkOrderDto {
   @IsDateString()
   @IsOptional()
   actualDeliveryDate?: string;
-
-  @IsUUID()
-  @IsOptional()
-  @Transform(({ value }) => (value === '' ? undefined : value))
-  assignedToOperationsId?: string;
-
-  @IsUUID()
-  @IsOptional()
-  @Transform(({ value }) => (value === '' ? undefined : value))
-  assignedToAccountsId?: string;
 
   @IsString()
   @IsOptional()

@@ -14,6 +14,7 @@ import {
   Put,
 } from '@nestjs/common';
 import { LeadsService } from './leads.service';
+import { LeadLifecycleHistoryService } from '../../services/lead-lifecycle-history.service';
 import {
   CreateLeadDto,
   UpdateLeadDto,
@@ -30,7 +31,10 @@ import { UserRole } from '../../entities/user.entity';
 @Controller('leads')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class LeadsController {
-  constructor(private readonly leadsService: LeadsService) {}
+  constructor(
+    private readonly leadsService: LeadsService,
+    private readonly lifecycleHistoryService: LeadLifecycleHistoryService,
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -133,6 +137,11 @@ export class LeadsController {
       approvalDto,
       req.user.userId,
     );
+  }
+
+  @Get(':id/lifecycle-history')
+  getLifecycleHistory(@Param('id') id: string) {
+    return this.lifecycleHistoryService.getLeadLifecycleHistory(id);
   }
 
   @Delete(':id')

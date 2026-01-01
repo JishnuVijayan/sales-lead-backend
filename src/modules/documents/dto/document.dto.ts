@@ -11,6 +11,10 @@ export class CreateDocumentDto {
   @IsUUID()
   leadId: string;
 
+  @IsUUID()
+  @IsOptional()
+  workOrderId?: string;
+
   @IsString()
   @IsOptional()
   description?: string;

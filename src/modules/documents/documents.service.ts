@@ -75,6 +75,14 @@ export class DocumentsService {
     await this.documentsRepository.remove(document);
   }
 
+  async findByWorkOrder(workOrderId: string): Promise<Document[]> {
+    return await this.documentsRepository.find({
+      where: { workOrderId },
+      relations: ['uploadedBy'],
+      order: { uploadedDate: 'DESC' },
+    });
+  }
+
   async findByLead(leadId: string): Promise<Document[]> {
     return await this.documentsRepository.find({
       where: { leadId },

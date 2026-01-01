@@ -8,12 +8,14 @@ import {
 } from 'typeorm';
 import { Lead } from './lead.entity';
 import { User } from './user.entity';
+import { WorkOrder } from './work-order.entity';
 
 export enum DocumentType {
   RFP = 'RFP',
   QUOTATION = 'Quotation',
   PROPOSAL = 'Proposal',
   CONTRACT = 'Contract',
+  WORK_ORDER = 'Work Order',
   EMAIL_ATTACHMENT = 'Email Attachment',
   REQUIREMENT_DOC = 'Requirement Document',
   PRESENTATION = 'Presentation',
@@ -32,6 +34,13 @@ export class Document {
 
   @Column({ name: 'lead_id' })
   leadId: string;
+
+  @ManyToOne(() => WorkOrder, { nullable: true })
+  @JoinColumn({ name: 'work_order_id' })
+  workOrder: WorkOrder;
+
+  @Column({ name: 'work_order_id', nullable: true })
+  workOrderId: string;
 
   @Column()
   fileName: string;
