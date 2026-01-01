@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { WorkOrder, AgreementType, PaymentTerms } from '../../entities';
+import { WorkOrder, AgreementType, PaymentTerms, LeadStatus } from '../../entities';
 import { CreateWorkOrderDto, UpdateWorkOrderDto } from './dto/work-order.dto';
 import { LeadsService } from '../leads/leads.service';
 import { AgreementsService } from '../agreements/agreements.service';
@@ -33,9 +33,9 @@ export class WorkOrdersService {
 
     const savedWorkOrder = await this.workOrdersRepository.save(workOrder);
 
-    // Mark lead as converted only if not already converted
+    // Mark lead as won if not already won
     const lead = await this.leadsService.findOne(createWorkOrderDto.leadId);
-    if (!lead.isConverted) {
+    if (lead.status !== LeadStatus.WON) {
       await this.leadsService.convertToWon(createWorkOrderDto.leadId);
 
       // Send lead won notification only for first work order

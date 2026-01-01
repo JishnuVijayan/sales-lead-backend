@@ -22,11 +22,54 @@ import { extname } from 'path';
 import { DocumentsService } from './documents.service';
 import { CreateDocumentDto, UpdateDocumentDto } from './dto/document.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { DocumentType } from '../../entities';
 
 @Controller('documents')
 @UseGuards(JwtAuthGuard)
 export class DocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
+
+  // Map string document type to DocumentType enum
+  private mapStringToDocumentType(documentType: string | undefined): DocumentType | undefined {
+    if (!documentType) return undefined;
+
+    const normalizedType = documentType.toUpperCase().trim();
+
+    switch (normalizedType) {
+      case 'RFP':
+        return DocumentType.RFP;
+      case 'QUOTATION':
+        return DocumentType.QUOTATION;
+      case 'PROPOSAL':
+        return DocumentType.PROPOSAL;
+      case 'CONTRACT':
+        return DocumentType.CONTRACT;
+      case 'AGREEMENT':
+        return DocumentType.AGREEMENT;
+      case 'WORK_ORDER':
+      case 'WORKORDER':
+        return DocumentType.WORK_ORDER;
+      case 'EMAIL_ATTACHMENT':
+      case 'EMAILATTACHMENT':
+        return DocumentType.EMAIL_ATTACHMENT;
+      case 'REQUIREMENT_DOC':
+      case 'REQUIREMENTDOC':
+      case 'REQUIREMENT_DOCUMENT':
+      case 'REQUIREMENTDOCUMENT':
+        return DocumentType.REQUIREMENT_DOC;
+      case 'PRESENTATION':
+        return DocumentType.PRESENTATION;
+      case 'IMAGE':
+        return DocumentType.IMAGE;
+      case 'OTHER':
+        return DocumentType.OTHER;
+      default:
+        // Try to match by enum value directly
+        const enumValues = Object.values(DocumentType);
+        const found = enumValues.find(value => value.toUpperCase() === normalizedType);
+        return found || undefined;
+    }
+  }
 
   @Post('upload')
   @UsePipes(
@@ -52,7 +95,7 @@ export class DocumentsController {
   async uploadFile(
     @UploadedFile() file: Express.Multer.File,
     @Body()
-    body: { leadId: string; workOrderId?: string; description?: string; documentType?: string },
+    body: { leadId: string; workOrderId?: string; agreementId?: string; description?: string; documentType?: string },
     @Request() req: any,
   ) {
     if (!file) {
@@ -63,8 +106,9 @@ export class DocumentsController {
     const createDocumentDto: CreateDocumentDto = {
       leadId: body.leadId,
       workOrderId: body.workOrderId || undefined,
+      agreementId: body.agreementId || undefined,
       description: body.description || undefined,
-      documentType: (body.documentType as any) || undefined,
+      documentType: this.mapStringToDocumentType(body.documentType),
     };
     return this.documentsService.create(createDocumentDto, file, userId);
   }
@@ -77,6 +121,11 @@ export class DocumentsController {
   @Get('work-order/:workOrderId')
   findByWorkOrder(@Param('workOrderId') workOrderId: string) {
     return this.documentsService.findByWorkOrder(workOrderId);
+  }
+
+  @Get('agreement/:agreementId')
+  findByAgreement(@Param('agreementId') agreementId: string) {
+    return this.documentsService.findByAgreement(agreementId);
   }
 
   @Get('lead/:leadId')

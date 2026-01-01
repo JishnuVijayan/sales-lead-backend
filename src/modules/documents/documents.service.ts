@@ -83,6 +83,14 @@ export class DocumentsService {
     });
   }
 
+  async findByAgreement(agreementId: string): Promise<Document[]> {
+    return await this.documentsRepository.find({
+      where: { agreementId },
+      relations: ['uploadedBy'],
+      order: { uploadedDate: 'DESC' },
+    });
+  }
+
   async findByLead(leadId: string): Promise<Document[]> {
     return await this.documentsRepository.find({
       where: { leadId },

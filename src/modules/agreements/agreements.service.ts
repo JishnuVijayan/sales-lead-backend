@@ -12,6 +12,7 @@ import { User, UserRole } from '../../entities/user.entity';
 import {
   ApprovalContext,
   ApprovalStatus,
+  ApprovalStage,
 } from '../../entities/approval.entity';
 import {
   CreateAgreementDto,
@@ -990,6 +991,32 @@ export class AgreementsService {
     };
   }
 
+  // Map UserRole to ApprovalStage enum
+  private mapUserRoleToApprovalStage(userRole: string): ApprovalStage {
+    switch (userRole) {
+      case UserRole.ACCOUNT_MANAGER:
+        return ApprovalStage.ACCOUNT_MANAGER;
+      case UserRole.SALES_MANAGER:
+        return ApprovalStage.SALES_MANAGER;
+      case UserRole.PRESALES:
+        return ApprovalStage.SALES_MANAGER; // Map Presales to Sales Manager
+      case UserRole.DELIVERY_MANAGER:
+        return ApprovalStage.DELIVERY_MANAGER;
+      case UserRole.FINANCE:
+        return ApprovalStage.FINANCE;
+      case UserRole.LEGAL:
+        return ApprovalStage.LEGAL;
+      case UserRole.PROCUREMENT:
+        return ApprovalStage.PROCUREMENT;
+      case UserRole.CEO:
+        return ApprovalStage.CEO;
+      case UserRole.ULCCS_APPROVER:
+        return ApprovalStage.ULCCS; // Map ULCCS Approver to ULCCS
+      default:
+        return ApprovalStage.ACCOUNT_MANAGER; // Default fallback
+    }
+  }
+
   // Send agreement for approval workflow
   async sendForApproval(id: string, userId: string): Promise<Agreement> {
     const agreement = await this.findOne(id);
@@ -1048,7 +1075,7 @@ export class AgreementsService {
       }
 
       const stage: any = {
-        stage: approverRole,
+        stage: this.mapUserRoleToApprovalStage(approverRole),
         approverRole: approverRole,
         isMandatory: config.isMandatory,
         sequenceOrder: config.sequenceOrder,
