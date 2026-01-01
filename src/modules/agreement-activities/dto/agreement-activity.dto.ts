@@ -4,6 +4,7 @@ import {
   IsEnum,
   IsString,
   IsOptional,
+  ValidateIf,
 } from 'class-validator';
 import { AgreementActivityType } from '../../../entities/agreement-activity.entity';
 
@@ -12,6 +13,7 @@ export class CreateAgreementActivityDto {
   @IsNotEmpty()
   agreementId: string;
 
+  @ValidateIf((o) => o.leadId !== undefined && o.leadId !== '')
   @IsUUID()
   @IsOptional()
   leadId?: string;
