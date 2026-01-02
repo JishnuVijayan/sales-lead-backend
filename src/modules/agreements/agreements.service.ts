@@ -2,6 +2,8 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  forwardRef,
+  Inject,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -24,6 +26,7 @@ import {
 import { AgreementApprovalConfigsService } from '../agreement-approval-configs/agreement-approval-configs.service';
 import { ApprovalsService } from '../approvals/approvals.service';
 import { ApprovalType } from '../../entities/agreement-approval-config.entity';
+import { ComprehensiveNotificationsService } from '../notifications/comprehensive-notifications.service';
 
 @Injectable()
 export class AgreementsService {
@@ -35,7 +38,9 @@ export class AgreementsService {
     @InjectRepository(Lead)
     private leadsRepository: Repository<Lead>,
     private agreementApprovalConfigsService: AgreementApprovalConfigsService,
+    @Inject(forwardRef(() => ApprovalsService))
     private approvalsService: ApprovalsService,
+    private comprehensiveNotificationsService: ComprehensiveNotificationsService,
   ) {}
 
   async create(
@@ -1263,6 +1268,15 @@ export class AgreementsService {
       agreement.stage = AgreementStage.PENDING_SIGNATURE;
       agreement.approvalInProgress = false;
       await this.agreementsRepository.save(agreement);
+
+      // Send approval completion notifications
+      await this.comprehensiveNotificationsService.notifyApprovalWorkflowCompleted(
+        ApprovalContext.AGREEMENT,
+        agreement.id,
+        agreement.leadId,
+        agreement.createdById,
+        agreement.lead?.assignedToId || '',
+      );
 
       await this.createStageHistory(
         agreement.id,

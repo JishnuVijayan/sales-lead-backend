@@ -9,8 +9,16 @@ import {
   Notification,
   NotificationStatus,
 } from '../../entities/notification.entity';
-import { Approval, ApprovalStatus, ApprovalStage, ApprovalContext } from '../../entities/approval.entity';
-import { AgreementDelay, DelayReason } from '../../entities/agreement-delay.entity';
+import {
+  Approval,
+  ApprovalStatus,
+  ApprovalStage,
+  ApprovalContext,
+} from '../../entities/approval.entity';
+import {
+  AgreementDelay,
+  DelayReason,
+} from '../../entities/agreement-delay.entity';
 
 export interface UserLeadStats {
   userId: string;
@@ -1243,7 +1251,7 @@ export class ReportsService {
         const waitTime = Date.now() - approval.requestedDate.getTime();
         const waitTimeDays = waitTime / (1000 * 60 * 60 * 24);
         stageGroup.averageWaitTime =
-          (stageGroup.averageWaitTime * (stageGroup.totalItems) + waitTimeDays) /
+          (stageGroup.averageWaitTime * stageGroup.totalItems + waitTimeDays) /
           (stageGroup.totalItems + 1);
         stageGroup.totalItems++;
       }
@@ -1307,6 +1315,8 @@ export class ReportsService {
         group.totalDelays;
     }
 
-    return Object.values(groupedDelays).sort((a, b) => a.date.localeCompare(b.date));
+    return Object.values(groupedDelays).sort((a, b) =>
+      a.date.localeCompare(b.date),
+    );
   }
 }

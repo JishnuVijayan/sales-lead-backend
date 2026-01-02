@@ -41,15 +41,19 @@ export class AgreementActivitiesService {
       createdById: userId,
     });
 
-    const savedActivity = await this.agreementActivitiesRepository.save(activity);
+    const savedActivity =
+      await this.agreementActivitiesRepository.save(activity);
 
     // Send notifications
-    const stakeholders = await this.notificationsService.getEntityStakeholders('Lead', createDto.leadId || agreement.leadId);
+    const stakeholders = await this.notificationsService.getEntityStakeholders(
+      'Lead',
+      createDto.leadId || agreement.leadId,
+    );
 
     // Notify stakeholders about new activity (excluding the creator and assignee)
     if (stakeholders.length > 0) {
       const filteredStakeholders = stakeholders.filter(
-        id => id !== userId && id !== createDto.assignedToId
+        (id) => id !== userId && id !== createDto.assignedToId,
       );
       if (filteredStakeholders.length > 0) {
         await this.notificationsService.notifyActivityAdded(
@@ -57,7 +61,7 @@ export class AgreementActivitiesService {
           createDto.agreementId,
           createDto.activityType,
           userId,
-          filteredStakeholders
+          filteredStakeholders,
         );
       }
     }
@@ -73,7 +77,7 @@ export class AgreementActivitiesService {
         'Agreement',
         createDto.agreementId,
         agreement.title || 'Unknown Agreement',
-        undefined // No scheduled date for agreement activities
+        undefined, // No scheduled date for agreement activities
       );
     }
 

@@ -138,7 +138,8 @@ export class NotificationsController {
     return {
       status: 'ok',
       timestamp: new Date().toISOString(),
-      activeConnections: this.sseNotificationsService.getStats().activeConnections,
+      activeConnections:
+        this.sseNotificationsService.getStats().activeConnections,
     };
   }
 }

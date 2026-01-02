@@ -58,7 +58,7 @@ export enum LifecycleEventType {
   AGREEMENT_STATUS_CHANGED = 'agreement_status_changed',
   AGREEMENT_ACTIVITY = 'agreement_activity',
   AGREEMENT_APPROVAL_DECISION = 'agreement_approval_decision',
-  AGREEMENT_SIGNED = 'agreement_signed'
+  AGREEMENT_SIGNED = 'agreement_signed',
 }
 
 @Injectable()
@@ -86,7 +86,9 @@ export class LeadLifecycleHistoryService {
     private approvalsRepository: Repository<Approval>,
   ) {}
 
-  async getLeadLifecycleHistory(leadId: string): Promise<LifecycleHistoryItem[]> {
+  async getLeadLifecycleHistory(
+    leadId: string,
+  ): Promise<LifecycleHistoryItem[]> {
     const lead = await this.leadsRepository.findOne({ where: { id: leadId } });
     if (!lead) {
       throw new Error('Lead not found');
@@ -119,7 +121,9 @@ export class LeadLifecycleHistoryService {
     allEvents.push(...workOrderEvents);
 
     // Sort by timestamp (newest first)
-    return allEvents.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+    return allEvents.sort(
+      (a, b) => b.timestamp.getTime() - a.timestamp.getTime(),
+    );
   }
 
   private async getRelatedEntityIds(leadId: string): Promise<{
@@ -128,30 +132,32 @@ export class LeadLifecycleHistoryService {
     negotiations: string[];
     workOrders: string[];
   }> {
-    const [proposals, agreements, negotiations, workOrders] = await Promise.all([
-      this.proposalsRepository.find({
-        where: { leadId },
-        select: ['id'],
-      }),
-      this.agreementsRepository.find({
-        where: { leadId },
-        select: ['id'],
-      }),
-      this.negotiationsRepository.find({
-        where: { leadId },
-        select: ['id'],
-      }),
-      this.workOrdersRepository.find({
-        where: { leadId },
-        select: ['id'],
-      }),
-    ]);
+    const [proposals, agreements, negotiations, workOrders] = await Promise.all(
+      [
+        this.proposalsRepository.find({
+          where: { leadId },
+          select: ['id'],
+        }),
+        this.agreementsRepository.find({
+          where: { leadId },
+          select: ['id'],
+        }),
+        this.negotiationsRepository.find({
+          where: { leadId },
+          select: ['id'],
+        }),
+        this.workOrdersRepository.find({
+          where: { leadId },
+          select: ['id'],
+        }),
+      ],
+    );
 
     return {
-      proposals: proposals.map(p => p.id),
-      agreements: agreements.map(a => a.id),
-      negotiations: negotiations.map(n => n.id),
-      workOrders: workOrders.map(w => w.id),
+      proposals: proposals.map((p) => p.id),
+      agreements: agreements.map((a) => a.id),
+      negotiations: negotiations.map((n) => n.id),
+      workOrders: workOrders.map((w) => w.id),
     };
   }
 
@@ -175,11 +181,13 @@ export class LeadLifecycleHistoryService {
       entityId: lead.id,
       title: 'Lead Created',
       description: `Lead "${lead.name}" was created`,
-      user: lead.createdBy ? {
-        id: lead.createdBy.id,
-        name: lead.createdBy.name,
-        role: lead.createdBy.role,
-      } : undefined,
+      user: lead.createdBy
+        ? {
+            id: lead.createdBy.id,
+            name: lead.createdBy.name,
+            role: lead.createdBy.role,
+          }
+        : undefined,
       metadata: {
         leadName: lead.name,
         source: lead.source,
@@ -223,19 +231,23 @@ export class LeadLifecycleHistoryService {
         entityId: lead.id,
         title: `${activity.type} Activity`,
         description: activity.description || `${activity.type} with lead`,
-        user: activity.createdBy ? {
-          id: activity.createdBy.id,
-          name: activity.createdBy.name,
-          role: activity.createdBy.role,
-        } : undefined,
+        user: activity.createdBy
+          ? {
+              id: activity.createdBy.id,
+              name: activity.createdBy.name,
+              role: activity.createdBy.role,
+            }
+          : undefined,
         metadata: {
           type: activity.type,
           scheduledDate: activity.scheduledDate,
           completedDate: activity.completedDate,
-          assignedTo: activity.assignedTo ? {
-            id: activity.assignedTo.id,
-            name: activity.assignedTo.name,
-          } : undefined,
+          assignedTo: activity.assignedTo
+            ? {
+                id: activity.assignedTo.id,
+                name: activity.assignedTo.name,
+              }
+            : undefined,
         },
       });
     }
@@ -243,7 +255,9 @@ export class LeadLifecycleHistoryService {
     return events;
   }
 
-  private async getProposalEvents(proposalIds: string[]): Promise<LifecycleHistoryItem[]> {
+  private async getProposalEvents(
+    proposalIds: string[],
+  ): Promise<LifecycleHistoryItem[]> {
     const events: LifecycleHistoryItem[] = [];
 
     if (proposalIds.length === 0) return events;
@@ -263,11 +277,13 @@ export class LeadLifecycleHistoryService {
         entityId: proposal.id,
         title: 'Proposal Created',
         description: `Proposal "${proposal.title}" was created for lead "${proposal.lead?.name}"`,
-        user: proposal.createdBy ? {
-          id: proposal.createdBy.id,
-          name: proposal.createdBy.name,
-          role: proposal.createdBy.role,
-        } : undefined,
+        user: proposal.createdBy
+          ? {
+              id: proposal.createdBy.id,
+              name: proposal.createdBy.name,
+              role: proposal.createdBy.role,
+            }
+          : undefined,
         metadata: {
           proposalTitle: proposal.title,
           totalAmount: proposal.totalAmount,
@@ -290,12 +306,16 @@ export class LeadLifecycleHistoryService {
           entityType: 'proposal',
           entityId: proposal.id,
           title: `${activity.activityType} Activity`,
-          description: activity.description || `${activity.activityType} activity on proposal`,
-          user: activity.createdBy ? {
-            id: activity.createdBy.id,
-            name: activity.createdBy.name,
-            role: activity.createdBy.role,
-          } : undefined,
+          description:
+            activity.description ||
+            `${activity.activityType} activity on proposal`,
+          user: activity.createdBy
+            ? {
+                id: activity.createdBy.id,
+                name: activity.createdBy.name,
+                role: activity.createdBy.role,
+              }
+            : undefined,
           metadata: {
             activityType: activity.activityType,
             subject: activity.subject,
@@ -321,15 +341,22 @@ export class LeadLifecycleHistoryService {
             entityId: proposal.id,
             title: `Proposal ${approval.status === ApprovalStatus.APPROVED ? 'Approved' : approval.status === ApprovalStatus.REJECTED ? 'Rejected' : 'Returned'}`,
             description: `${approval.status === ApprovalStatus.APPROVED ? 'Approved' : approval.status === ApprovalStatus.REJECTED ? 'Rejected' : 'Returned'} by ${approval.approver?.name || 'Unknown'}`,
-            user: approval.approver ? {
-              id: approval.approver.id,
-              name: approval.approver.name,
-              role: approval.approver.role,
-            } : undefined,
+            user: approval.approver
+              ? {
+                  id: approval.approver.id,
+                  name: approval.approver.name,
+                  role: approval.approver.role,
+                }
+              : undefined,
             metadata: {
               stage: approval.stage,
               comments: approval.comments,
-              approvalDecision: approval.status === ApprovalStatus.APPROVED ? 'approved' : approval.status === ApprovalStatus.REJECTED ? 'rejected' : 'returned',
+              approvalDecision:
+                approval.status === ApprovalStatus.APPROVED
+                  ? 'approved'
+                  : approval.status === ApprovalStatus.REJECTED
+                    ? 'rejected'
+                    : 'returned',
             },
           });
         }
@@ -339,7 +366,9 @@ export class LeadLifecycleHistoryService {
     return events;
   }
 
-  private async getAgreementEvents(agreementIds: string[]): Promise<LifecycleHistoryItem[]> {
+  private async getAgreementEvents(
+    agreementIds: string[],
+  ): Promise<LifecycleHistoryItem[]> {
     const events: LifecycleHistoryItem[] = [];
 
     if (agreementIds.length === 0) return events;
@@ -359,11 +388,13 @@ export class LeadLifecycleHistoryService {
         entityId: agreement.id,
         title: 'Agreement Created',
         description: `Agreement was created for lead "${agreement.lead?.name}"`,
-        user: agreement.createdBy ? {
-          id: agreement.createdBy.id,
-          name: agreement.createdBy.name,
-          role: agreement.createdBy.role,
-        } : undefined,
+        user: agreement.createdBy
+          ? {
+              id: agreement.createdBy.id,
+              name: agreement.createdBy.name,
+              role: agreement.createdBy.role,
+            }
+          : undefined,
         metadata: {
           contractValue: agreement.contractValue,
           leadName: agreement.lead?.name,
@@ -416,12 +447,16 @@ export class LeadLifecycleHistoryService {
           entityType: 'agreement',
           entityId: agreement.id,
           title: `${activity.activityType} Activity`,
-          description: activity.description || `${activity.activityType} activity on agreement`,
-          user: activity.createdBy ? {
-            id: activity.createdBy.id,
-            name: activity.createdBy.name,
-            role: activity.createdBy.role,
-          } : undefined,
+          description:
+            activity.description ||
+            `${activity.activityType} activity on agreement`,
+          user: activity.createdBy
+            ? {
+                id: activity.createdBy.id,
+                name: activity.createdBy.name,
+                role: activity.createdBy.role,
+              }
+            : undefined,
           metadata: {
             activityType: activity.activityType,
             subject: activity.subject,
@@ -447,15 +482,22 @@ export class LeadLifecycleHistoryService {
             entityId: agreement.id,
             title: `Agreement ${approval.status === ApprovalStatus.APPROVED ? 'Approved' : approval.status === ApprovalStatus.REJECTED ? 'Rejected' : 'Returned'}`,
             description: `${approval.status === ApprovalStatus.APPROVED ? 'Approved' : approval.status === ApprovalStatus.REJECTED ? 'Rejected' : 'Returned'} by ${approval.approver?.name || 'Unknown'}`,
-            user: approval.approver ? {
-              id: approval.approver.id,
-              name: approval.approver.name,
-              role: approval.approver.role,
-            } : undefined,
+            user: approval.approver
+              ? {
+                  id: approval.approver.id,
+                  name: approval.approver.name,
+                  role: approval.approver.role,
+                }
+              : undefined,
             metadata: {
               stage: approval.stage,
               comments: approval.comments,
-              approvalDecision: approval.status === ApprovalStatus.APPROVED ? 'approved' : approval.status === ApprovalStatus.REJECTED ? 'rejected' : 'returned',
+              approvalDecision:
+                approval.status === ApprovalStatus.APPROVED
+                  ? 'approved'
+                  : approval.status === ApprovalStatus.REJECTED
+                    ? 'rejected'
+                    : 'returned',
             },
           });
         }
@@ -465,13 +507,17 @@ export class LeadLifecycleHistoryService {
     return events;
   }
 
-  private async getNegotiationEvents(negotiationIds: string[]): Promise<LifecycleHistoryItem[]> {
+  private async getNegotiationEvents(
+    negotiationIds: string[],
+  ): Promise<LifecycleHistoryItem[]> {
     const events: LifecycleHistoryItem[] = [];
 
     if (negotiationIds.length === 0) return events;
 
     const negotiations = await this.negotiationsRepository.find({
-      where: { id: negotiationIds.length === 1 ? negotiationIds[0] : undefined },
+      where: {
+        id: negotiationIds.length === 1 ? negotiationIds[0] : undefined,
+      },
       relations: ['createdBy', 'lead'],
     });
 
@@ -485,11 +531,13 @@ export class LeadLifecycleHistoryService {
         entityId: negotiation.id,
         title: 'Negotiation Started',
         description: `Negotiation started for lead "${negotiation.lead?.name}"`,
-        user: negotiation.negotiator ? {
-          id: negotiation.negotiator.id,
-          name: negotiation.negotiator.name,
-          role: negotiation.negotiator.role,
-        } : undefined,
+        user: negotiation.negotiator
+          ? {
+              id: negotiation.negotiator.id,
+              name: negotiation.negotiator.name,
+              role: negotiation.negotiator.role,
+            }
+          : undefined,
         metadata: {
           expectedAmount: negotiation.expectedAmount,
           finalAmount: negotiation.finalAmount,
@@ -507,18 +555,22 @@ export class LeadLifecycleHistoryService {
         entityId: negotiation.id,
         title: 'Negotiation Activity',
         description: 'Negotiation process initiated',
-        user: negotiation.negotiator ? {
-          id: negotiation.negotiator.id,
-          name: negotiation.negotiator.name,
-          role: negotiation.negotiator.role,
-        } : undefined,
+        user: negotiation.negotiator
+          ? {
+              id: negotiation.negotiator.id,
+              name: negotiation.negotiator.name,
+              role: negotiation.negotiator.role,
+            }
+          : undefined,
       });
     }
 
     return events;
   }
 
-  private async getWorkOrderEvents(workOrderIds: string[]): Promise<LifecycleHistoryItem[]> {
+  private async getWorkOrderEvents(
+    workOrderIds: string[],
+  ): Promise<LifecycleHistoryItem[]> {
     const events: LifecycleHistoryItem[] = [];
 
     if (workOrderIds.length === 0) return events;
@@ -538,11 +590,13 @@ export class LeadLifecycleHistoryService {
         entityId: workOrder.id,
         title: 'Work Order Created',
         description: `Work order created for lead "${workOrder.lead?.name}"`,
-        user: workOrder.createdBy ? {
-          id: workOrder.createdBy.id,
-          name: workOrder.createdBy.name,
-          role: workOrder.createdBy.role,
-        } : undefined,
+        user: workOrder.createdBy
+          ? {
+              id: workOrder.createdBy.id,
+              name: workOrder.createdBy.name,
+              role: workOrder.createdBy.role,
+            }
+          : undefined,
         metadata: {
           orderValue: workOrder.orderValue,
           leadName: workOrder.lead?.name,
@@ -559,11 +613,13 @@ export class LeadLifecycleHistoryService {
         entityId: workOrder.id,
         title: 'Work Order Activity',
         description: 'Work order processing initiated',
-        user: workOrder.createdBy ? {
-          id: workOrder.createdBy.id,
-          name: workOrder.createdBy.name,
-          role: workOrder.createdBy.role,
-        } : undefined,
+        user: workOrder.createdBy
+          ? {
+              id: workOrder.createdBy.id,
+              name: workOrder.createdBy.name,
+              role: workOrder.createdBy.role,
+            }
+          : undefined,
       });
     }
 

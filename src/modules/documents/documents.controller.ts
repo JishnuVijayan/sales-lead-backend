@@ -30,7 +30,9 @@ export class DocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
 
   // Map string document type to DocumentType enum
-  private mapStringToDocumentType(documentType: string | undefined): DocumentType | undefined {
+  private mapStringToDocumentType(
+    documentType: string | undefined,
+  ): DocumentType | undefined {
     if (!documentType) return undefined;
 
     const normalizedType = documentType.toUpperCase().trim();
@@ -66,7 +68,9 @@ export class DocumentsController {
       default:
         // Try to match by enum value directly
         const enumValues = Object.values(DocumentType);
-        const found = enumValues.find(value => value.toUpperCase() === normalizedType);
+        const found = enumValues.find(
+          (value) => value.toUpperCase() === normalizedType,
+        );
         return found || undefined;
     }
   }
@@ -95,7 +99,13 @@ export class DocumentsController {
   async uploadFile(
     @UploadedFile() file: Express.Multer.File,
     @Body()
-    body: { leadId: string; workOrderId?: string; agreementId?: string; description?: string; documentType?: string },
+    body: {
+      leadId: string;
+      workOrderId?: string;
+      agreementId?: string;
+      description?: string;
+      documentType?: string;
+    },
     @Request() req: any,
   ) {
     if (!file) {

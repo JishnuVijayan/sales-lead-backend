@@ -31,7 +31,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
       WorkOrder,
       Approval,
     ]),
-    NotificationsModule
+    NotificationsModule,
   ],
   controllers: [LeadsController],
   providers: [LeadsService, LeadLifecycleHistoryService],

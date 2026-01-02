@@ -117,6 +117,13 @@ export class Lead {
   assignedToId: string;
 
   @ManyToOne(() => User, { nullable: true, eager: true })
+  @JoinColumn({ name: 'claimed_by' })
+  claimedBy: User;
+
+  @Column({ name: 'claimed_by', nullable: true })
+  claimedById: string;
+
+  @ManyToOne(() => User, { nullable: true, eager: true })
   @JoinColumn({ name: 'created_by' })
   createdBy: User;
 

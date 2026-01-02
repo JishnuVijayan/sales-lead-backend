@@ -9,6 +9,7 @@ import { ApprovalsModule } from '../approvals/approvals.module';
 import { ProposalApprovalConfigsModule } from '../proposal-approval-configs/proposal-approval-configs.module';
 import { PdfService } from '../../services/pdf.service';
 import { ProposalStageHistoryService } from '../../services/proposal-stage-history.service';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { ProposalStageHistoryService } from '../../services/proposal-stage-histo
     UsersModule,
     ApprovalsModule,
     ProposalApprovalConfigsModule,
+    NotificationsModule,
   ],
   controllers: [ProposalsController],
   providers: [ProposalsService, PdfService, ProposalStageHistoryService],

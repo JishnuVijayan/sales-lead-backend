@@ -23,6 +23,7 @@ export enum NotificationType {
   PROPOSAL_APPROVED = 'Proposal Approved',
   PROPOSAL_REJECTED = 'Proposal Rejected',
   PROPOSAL_SENT_TO_CLIENT = 'Proposal Sent to Client',
+  APPROVAL_WORKFLOW_COMPLETED = 'Approval Workflow Completed',
   NEGOTIATION_STARTED = 'Negotiation Started',
   NEGOTIATION_UPDATED = 'Negotiation Updated',
 

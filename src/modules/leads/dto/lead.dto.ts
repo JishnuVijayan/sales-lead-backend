@@ -75,6 +75,10 @@ export class CreateLeadDto {
   @IsOptional()
   assignedToId?: string;
 
+  @IsUUID()
+  @IsOptional()
+  claimedById?: string;
+
   @IsString()
   @IsOptional()
   internalNotes?: string;
@@ -180,6 +184,10 @@ export class UpdateLeadDto {
   @IsUUID()
   @IsOptional()
   assignedToId?: string;
+
+  @IsUUID()
+  @IsOptional()
+  claimedById?: string;
 
   @IsString()
   @IsOptional()
@@ -329,6 +337,10 @@ export class FilterLeadsDto {
   @IsUUID()
   @IsOptional()
   assignedToId?: string;
+
+  @IsUUID()
+  @IsOptional()
+  claimedById?: string;
 
   @IsNumber()
   @IsOptional()

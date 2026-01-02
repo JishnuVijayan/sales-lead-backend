@@ -99,7 +99,9 @@ export class NotificationsService {
         );
       }
     } catch (error) {
-      this.logger.error(`Failed to push notification via SSE: ${error.message}`);
+      this.logger.error(
+        `Failed to push notification via SSE: ${error.message}`,
+      );
     }
   }
 

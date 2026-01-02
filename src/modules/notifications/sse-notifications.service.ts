@@ -19,19 +19,19 @@ interface ConnectionInfo {
 @Injectable()
 export class SseNotificationsService {
   private readonly logger = new Logger(SseNotificationsService.name);
-  
+
   // Map of connection ID to connection info
   private connections = new Map<string, ConnectionInfo>();
-  
+
   // Map of user ID to set of connection IDs (for multi-tab support)
   private userConnections = new Map<string, Set<string>>();
-  
+
   // Configuration
   private readonly MAX_CONNECTIONS_PER_USER = 5;
   private readonly MAX_TOTAL_CONNECTIONS = 500;
   private readonly HEARTBEAT_INTERVAL = 30000; // 30 seconds
   private readonly CONNECTION_TIMEOUT = 300000; // 5 minutes
-  
+
   // Statistics
   private totalNotificationsSent = 0;
 
@@ -47,24 +47,28 @@ export class SseNotificationsService {
   createStream(userId: string): Observable<SSEMessage> {
     // Check total connections limit
     if (this.connections.size >= this.MAX_TOTAL_CONNECTIONS) {
-      this.logger.warn(`Max total connections reached: ${this.MAX_TOTAL_CONNECTIONS}`);
+      this.logger.warn(
+        `Max total connections reached: ${this.MAX_TOTAL_CONNECTIONS}`,
+      );
       throw new Error('Server capacity reached. Please try again later.');
     }
 
     // Check user connection limit
     const userConnectionCount = this.getUserConnectionCount(userId);
     if (userConnectionCount >= this.MAX_CONNECTIONS_PER_USER) {
-      this.logger.warn(`User ${userId} exceeded max connections: ${this.MAX_CONNECTIONS_PER_USER}`);
+      this.logger.warn(
+        `User ${userId} exceeded max connections: ${this.MAX_CONNECTIONS_PER_USER}`,
+      );
       // Close oldest connection for this user
       this.closeOldestUserConnection(userId);
     }
 
     // Generate unique connection ID
     const connectionId = `${userId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    
+
     // Create Subject for this connection
     const stream = new Subject<SSEMessage>();
-    
+
     // Store connection info
     const connectionInfo: ConnectionInfo = {
       stream,
@@ -72,16 +76,18 @@ export class SseNotificationsService {
       connectedAt: new Date(),
       lastHeartbeat: new Date(),
     };
-    
+
     this.connections.set(connectionId, connectionInfo);
-    
+
     // Track user connections
     if (!this.userConnections.has(userId)) {
       this.userConnections.set(userId, new Set());
     }
     this.userConnections.get(userId)!.add(connectionId);
 
-    this.logger.log(`SSE connection established: ${connectionId} for user ${userId} (${this.connections.size} total connections)`);
+    this.logger.log(
+      `SSE connection established: ${connectionId} for user ${userId} (${this.connections.size} total connections)`,
+    );
 
     // Send initial connection message
     stream.next({
@@ -94,21 +100,25 @@ export class SseNotificationsService {
     });
 
     // Set up heartbeat for this connection
-    const heartbeatInterval = interval(this.HEARTBEAT_INTERVAL).subscribe(() => {
-      try {
-        stream.next({
-          data: JSON.stringify({
-            type: 'heartbeat',
-            timestamp: new Date().toISOString(),
-          }),
-        });
-        connectionInfo.lastHeartbeat = new Date();
-      } catch (error) {
-        this.logger.error(`Heartbeat failed for ${connectionId}: ${error.message}`);
-        heartbeatInterval.unsubscribe();
-        this.closeConnection(connectionId);
-      }
-    });
+    const heartbeatInterval = interval(this.HEARTBEAT_INTERVAL).subscribe(
+      () => {
+        try {
+          stream.next({
+            data: JSON.stringify({
+              type: 'heartbeat',
+              timestamp: new Date().toISOString(),
+            }),
+          });
+          connectionInfo.lastHeartbeat = new Date();
+        } catch (error) {
+          this.logger.error(
+            `Heartbeat failed for ${connectionId}: ${error.message}`,
+          );
+          heartbeatInterval.unsubscribe();
+          this.closeConnection(connectionId);
+        }
+      },
+    );
 
     // Convert Subject to Observable with MessageEvent format
     return stream.pipe(
@@ -122,7 +132,7 @@ export class SseNotificationsService {
         this.logger.log(`SSE connection closed: ${connectionId}`);
         heartbeatInterval.unsubscribe();
         this.closeConnection(connectionId);
-      })
+      }),
     );
   }
 
@@ -131,14 +141,14 @@ export class SseNotificationsService {
    */
   pushToUser(userId: string, notification: any): boolean {
     const connectionIds = this.userConnections.get(userId);
-    
+
     if (!connectionIds || connectionIds.size === 0) {
       this.logger.debug(`No active connections for user ${userId}`);
       return false;
     }
 
     let successCount = 0;
-    
+
     for (const connectionId of connectionIds) {
       const connection = this.connections.get(connectionId);
       if (connection) {
@@ -152,7 +162,9 @@ export class SseNotificationsService {
           });
           successCount++;
         } catch (error) {
-          this.logger.error(`Failed to push to connection ${connectionId}: ${error.message}`);
+          this.logger.error(
+            `Failed to push to connection ${connectionId}: ${error.message}`,
+          );
           this.closeConnection(connectionId);
         }
       }
@@ -160,7 +172,9 @@ export class SseNotificationsService {
 
     if (successCount > 0) {
       this.totalNotificationsSent++;
-      this.logger.log(`Pushed notification to ${successCount} connection(s) for user ${userId}`);
+      this.logger.log(
+        `Pushed notification to ${successCount} connection(s) for user ${userId}`,
+      );
     }
 
     return successCount > 0;
@@ -184,7 +198,7 @@ export class SseNotificationsService {
    */
   broadcastToAll(notification: any): number {
     let successCount = 0;
-    
+
     for (const [connectionId, connection] of this.connections) {
       try {
         connection.stream.next({
@@ -196,7 +210,9 @@ export class SseNotificationsService {
         });
         successCount++;
       } catch (error) {
-        this.logger.error(`Failed to broadcast to ${connectionId}: ${error.message}`);
+        this.logger.error(
+          `Failed to broadcast to ${connectionId}: ${error.message}`,
+        );
         this.closeConnection(connectionId);
       }
     }
@@ -217,7 +233,7 @@ export class SseNotificationsService {
       } catch (error) {
         // Ignore errors on close
       }
-      
+
       // Remove from user connections map
       const userConnectionSet = this.userConnections.get(connection.userId);
       if (userConnectionSet) {
@@ -226,7 +242,7 @@ export class SseNotificationsService {
           this.userConnections.delete(connection.userId);
         }
       }
-      
+
       this.connections.delete(connectionId);
     }
   }
@@ -250,7 +266,9 @@ export class SseNotificationsService {
     }
 
     if (oldestConnectionId) {
-      this.logger.log(`Closing oldest connection for user ${userId}: ${oldestConnectionId}`);
+      this.logger.log(
+        `Closing oldest connection for user ${userId}: ${oldestConnectionId}`,
+      );
       this.closeConnection(oldestConnectionId);
     }
   }
@@ -280,16 +298,21 @@ export class SseNotificationsService {
     const staleConnections: string[] = [];
 
     for (const [connectionId, connection] of this.connections) {
-      const timeSinceHeartbeat = now.getTime() - connection.lastHeartbeat.getTime();
-      
+      const timeSinceHeartbeat =
+        now.getTime() - connection.lastHeartbeat.getTime();
+
       if (timeSinceHeartbeat > this.CONNECTION_TIMEOUT) {
         staleConnections.push(connectionId);
       }
     }
 
     if (staleConnections.length > 0) {
-      this.logger.log(`Cleaning up ${staleConnections.length} stale connection(s)`);
-      staleConnections.forEach(connectionId => this.closeConnection(connectionId));
+      this.logger.log(
+        `Cleaning up ${staleConnections.length} stale connection(s)`,
+      );
+      staleConnections.forEach((connectionId) =>
+        this.closeConnection(connectionId),
+      );
     }
   }
 
@@ -299,7 +322,8 @@ export class SseNotificationsService {
   getStats() {
     const uniqueUsers = this.userConnections.size;
     const totalConnections = this.connections.size;
-    const averageConnectionsPerUser = uniqueUsers > 0 ? totalConnections / uniqueUsers : 0;
+    const averageConnectionsPerUser =
+      uniqueUsers > 0 ? totalConnections / uniqueUsers : 0;
 
     // Count connections per user
     const connectionsPerUser: Record<string, number> = {};

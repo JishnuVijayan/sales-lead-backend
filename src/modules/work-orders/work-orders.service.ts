@@ -5,7 +5,12 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { WorkOrder, AgreementType, PaymentTerms, LeadStatus } from '../../entities';
+import {
+  WorkOrder,
+  AgreementType,
+  PaymentTerms,
+  LeadStatus,
+} from '../../entities';
 import { CreateWorkOrderDto, UpdateWorkOrderDto } from './dto/work-order.dto';
 import { LeadsService } from '../leads/leads.service';
 import { AgreementsService } from '../agreements/agreements.service';
@@ -92,10 +97,7 @@ export class WorkOrdersService {
     limit: number;
   }> {
     const [workOrders, total] = await this.workOrdersRepository.findAndCount({
-      relations: [
-        'lead',
-        'createdBy',
-      ],
+      relations: ['lead', 'createdBy'],
       order: { createdDate: 'DESC' },
     });
 
@@ -130,10 +132,7 @@ export class WorkOrdersService {
   async findOne(id: string): Promise<WorkOrder> {
     const workOrder = await this.workOrdersRepository.findOne({
       where: { id },
-      relations: [
-        'lead',
-        'createdBy',
-      ],
+      relations: ['lead', 'createdBy'],
     });
 
     if (!workOrder) {

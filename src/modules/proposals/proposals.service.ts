@@ -24,6 +24,7 @@ import { PdfService } from '../../services/pdf.service';
 import { ApprovalsService } from '../approvals/approvals.service';
 import { ProposalApprovalConfigsService } from '../proposal-approval-configs/proposal-approval-configs.service';
 import { ProposalStageHistoryService } from '../../services/proposal-stage-history.service';
+import { ComprehensiveNotificationsService } from '../notifications/comprehensive-notifications.service';
 
 @Injectable()
 export class ProposalsService {
@@ -39,6 +40,7 @@ export class ProposalsService {
     private approvalsService: ApprovalsService,
     private proposalApprovalConfigsService: ProposalApprovalConfigsService,
     private proposalStageHistoryService: ProposalStageHistoryService,
+    private comprehensiveNotificationsService: ComprehensiveNotificationsService,
   ) {}
 
   /**
@@ -489,6 +491,15 @@ export class ProposalsService {
       proposal.approvalInProgress = false; // Mark approval workflow as completed
       await this.proposalsRepository.save(proposal);
 
+      // Send approval completion notifications
+      await this.comprehensiveNotificationsService.notifyApprovalWorkflowCompleted(
+        ApprovalContext.PROPOSAL,
+        proposal.id,
+        proposal.leadId,
+        proposal.createdById,
+        proposal.lead?.assignedToId || '',
+      );
+
       // Log status change
       await this.proposalStageHistoryService.createStageHistory(
         proposal.id,
@@ -523,7 +534,10 @@ export class ProposalsService {
       id,
     );
 
-    if (!proposal.approvalInProgress && !(proposal.status === ProposalStatus.SENT && hasApprovals.length > 0)) {
+    if (
+      !proposal.approvalInProgress &&
+      !(proposal.status === ProposalStatus.SENT && hasApprovals.length > 0)
+    ) {
       throw new BadRequestException('No approval workflow in progress');
     }
 

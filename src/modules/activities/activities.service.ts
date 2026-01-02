@@ -15,7 +15,10 @@ export class ActivitiesService {
     private notificationsService: ComprehensiveNotificationsService,
   ) {}
 
-  async create(createActivityDto: CreateActivityDto, userId: string): Promise<LeadActivity> {
+  async create(
+    createActivityDto: CreateActivityDto,
+    userId: string,
+  ): Promise<LeadActivity> {
     const activity = this.activitiesRepository.create(createActivityDto);
     const savedActivity = await this.activitiesRepository.save(activity);
 
@@ -24,12 +27,15 @@ export class ActivitiesService {
 
     // Send notifications
     const lead = await this.leadsService.findOne(createActivityDto.leadId);
-    const stakeholders = await this.notificationsService.getEntityStakeholders('Lead', createActivityDto.leadId);
+    const stakeholders = await this.notificationsService.getEntityStakeholders(
+      'Lead',
+      createActivityDto.leadId,
+    );
 
     // Notify stakeholders about new activity (excluding the creator and assignee)
     if (stakeholders.length > 0) {
       const filteredStakeholders = stakeholders.filter(
-        id => id !== userId && id !== createActivityDto.assignedToId
+        (id) => id !== userId && id !== createActivityDto.assignedToId,
       );
       if (filteredStakeholders.length > 0) {
         await this.notificationsService.notifyActivityAdded(
@@ -37,7 +43,7 @@ export class ActivitiesService {
           createActivityDto.leadId,
           savedActivity.type,
           userId,
-          filteredStakeholders
+          filteredStakeholders,
         );
       }
     }
@@ -53,7 +59,7 @@ export class ActivitiesService {
         'Lead',
         createActivityDto.leadId,
         lead.name || 'Unknown Lead',
-        savedActivity.scheduledDate
+        savedActivity.scheduledDate,
       );
     }
 

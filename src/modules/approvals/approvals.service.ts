@@ -3,6 +3,8 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  forwardRef,
+  Inject,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -23,6 +25,9 @@ import { ProposalActivitiesService } from '../proposal-activities/proposal-activ
 import { ProposalActivityType } from '../../entities/proposal-activity.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationType } from '../../entities/notification.entity';
+import { ComprehensiveNotificationsService } from '../notifications/comprehensive-notifications.service';
+import { ProposalsService } from '../proposals/proposals.service';
+import { AgreementsService } from '../agreements/agreements.service';
 
 @Injectable()
 export class ApprovalsService {
@@ -33,6 +38,11 @@ export class ApprovalsService {
     private usersRepository: Repository<User>,
     private proposalActivitiesService: ProposalActivitiesService,
     private notificationsService: NotificationsService,
+    private comprehensiveNotificationsService: ComprehensiveNotificationsService,
+    @Inject(forwardRef(() => ProposalsService))
+    private proposalsService: ProposalsService,
+    @Inject(forwardRef(() => AgreementsService))
+    private agreementsService: AgreementsService,
   ) {}
 
   /**
@@ -91,8 +101,12 @@ export class ApprovalsService {
           .where('approval.id = :id', { id: approval.id })
           .getOne();
 
-        const entityType = approval.context === ApprovalContext.PROPOSAL ? 'Proposal' : 'Agreement';
-        const leadName = lead?.lead?.name || lead?.lead?.organization || 'Unknown';
+        const entityType =
+          approval.context === ApprovalContext.PROPOSAL
+            ? 'Proposal'
+            : 'Agreement';
+        const leadName =
+          lead?.lead?.name || lead?.lead?.organization || 'Unknown';
 
         await this.notificationsService.createNotification(
           approval.approverId,
@@ -227,35 +241,65 @@ export class ApprovalsService {
 
     const savedApproval = await this.approvalsRepository.save(approval);
 
+    // Check if all approvals are now completed and trigger completion logic
+    const allApprovalsCompleted = await this.areAllApprovalsCompleted(
+      savedApproval.context,
+      savedApproval.entityId,
+    );
+
+    if (allApprovalsCompleted) {
+      // Trigger completion logic in the appropriate service
+      if (savedApproval.context === ApprovalContext.PROPOSAL) {
+        await this.proposalsService.checkApprovalStatus(savedApproval.entityId);
+      } else if (savedApproval.context === ApprovalContext.AGREEMENT) {
+        // For agreements, we need to call the sendForApproval method which has the completion logic
+        // But since we're already in the approval response, let's call it with a dummy user
+        // Actually, let me check if agreements has a similar method
+        await this.agreementsService.sendForApproval(
+          savedApproval.entityId,
+          userId,
+        );
+      }
+    }
+
     // Create proposal activity if this is a proposal approval
     if (savedApproval.context === ApprovalContext.PROPOSAL) {
-      const activityType = savedApproval.status === ApprovalStatus.APPROVED 
-        ? ProposalActivityType.APPROVAL_RECEIVED 
-        : ProposalActivityType.APPROVAL_REJECTED;
+      const activityType =
+        savedApproval.status === ApprovalStatus.APPROVED
+          ? ProposalActivityType.APPROVAL_RECEIVED
+          : ProposalActivityType.APPROVAL_REJECTED;
 
       const subject = `${savedApproval.stage} ${savedApproval.status.toLowerCase()}`;
-      const description = respondDto.comments || `${savedApproval.stage} was ${savedApproval.status.toLowerCase()} by ${currentUser.name || currentUser.email}`;
+      const description =
+        respondDto.comments ||
+        `${savedApproval.stage} was ${savedApproval.status.toLowerCase()} by ${currentUser.name || currentUser.email}`;
 
       try {
-        await this.proposalActivitiesService.create({
-          proposalId: savedApproval.entityId,
-          leadId: savedApproval.leadId,
-          activityType,
-          subject,
-          description,
-          metadata: {
-            approvalId: savedApproval.id,
-            approverId: userId,
-            approverName: currentUser.name,
-            approverRole: currentUser.role,
-            stage: savedApproval.stage,
-            status: savedApproval.status,
-            comments: respondDto.comments,
+        await this.proposalActivitiesService.create(
+          {
+            proposalId: savedApproval.entityId,
+            leadId: savedApproval.leadId,
+            activityType,
+            subject,
+            description,
+            metadata: {
+              approvalId: savedApproval.id,
+              approverId: userId,
+              approverName: currentUser.name,
+              approverRole: currentUser.role,
+              stage: savedApproval.stage,
+              status: savedApproval.status,
+              comments: respondDto.comments,
+            },
           },
-        }, userId);
+          userId,
+        );
       } catch (error) {
         // Log error but don't fail the approval process
-        console.error('Failed to create proposal activity for approval:', error);
+        console.error(
+          'Failed to create proposal activity for approval:',
+          error,
+        );
       }
     }
 
@@ -290,23 +334,31 @@ export class ApprovalsService {
     // Create proposal activity if this is a proposal approval
     if (savedApproval.context === ApprovalContext.PROPOSAL) {
       try {
-        await this.proposalActivitiesService.create({
-          proposalId: savedApproval.entityId,
-          leadId: savedApproval.leadId,
-          activityType: ProposalActivityType.APPROVAL_RETURNED,
-          subject: `${savedApproval.stage} returned to creator`,
-          description: reason || `${savedApproval.stage} was returned to the creator by ${userId}`,
-          metadata: {
-            approvalId: savedApproval.id,
-            approverId: userId,
-            stage: savedApproval.stage,
-            status: savedApproval.status,
-            reason: reason,
+        await this.proposalActivitiesService.create(
+          {
+            proposalId: savedApproval.entityId,
+            leadId: savedApproval.leadId,
+            activityType: ProposalActivityType.APPROVAL_RETURNED,
+            subject: `${savedApproval.stage} returned to creator`,
+            description:
+              reason ||
+              `${savedApproval.stage} was returned to the creator by ${userId}`,
+            metadata: {
+              approvalId: savedApproval.id,
+              approverId: userId,
+              stage: savedApproval.stage,
+              status: savedApproval.status,
+              reason: reason,
+            },
           },
-        }, userId);
+          userId,
+        );
       } catch (error) {
         // Log error but don't fail the approval process
-        console.error('Failed to create proposal activity for approval return:', error);
+        console.error(
+          'Failed to create proposal activity for approval return:',
+          error,
+        );
       }
     }
 
@@ -434,14 +486,19 @@ export class ApprovalsService {
         return a.sequenceOrder - b.sequenceOrder;
       }
       // Then by creation date (newest first) to get the most recent for each sequence
-      return new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime();
+      return (
+        new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime()
+      );
     });
 
     // Filter to show only the most recent approval for each sequence order
     // This removes duplicate entries when proposals are returned and resent
     const currentApprovals = sortedApprovals.filter((approval, index, arr) => {
       // Keep the first (most recent) approval for each sequence order
-      return arr.findIndex(a => a.sequenceOrder === approval.sequenceOrder) === index;
+      return (
+        arr.findIndex((a) => a.sequenceOrder === approval.sequenceOrder) ===
+        index
+      );
     });
 
     const total = currentApprovals.length;

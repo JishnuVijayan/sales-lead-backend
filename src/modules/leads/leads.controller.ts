@@ -105,8 +105,9 @@ export class LeadsController {
 
   @Patch(':id/claim')
   @HttpCode(HttpStatus.OK)
-  claim(@Param('id') id: string, @Body('userId') userId: string) {
-    return this.leadsService.claim(id, userId);
+  @Roles(UserRole.SALES_MANAGER)
+  claim(@Param('id') id: string, @Request() req: any) {
+    return this.leadsService.claim(id, req.user.userId);
   }
   // Phase 2: New workflow endpoints
   @Put(':id/request-qualification')

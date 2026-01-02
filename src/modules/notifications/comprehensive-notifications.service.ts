@@ -8,6 +8,8 @@ import {
 import { User, UserRole } from '../../entities/user.entity';
 import { Lead } from '../../entities/lead.entity';
 import { Agreement } from '../../entities/agreement.entity';
+import { Proposal } from '../../entities/proposal.entity';
+import { ApprovalContext } from '../../entities/approval.entity';
 import { NotificationsService } from './notifications.service';
 
 @Injectable()
@@ -21,6 +23,8 @@ export class ComprehensiveNotificationsService {
     private leadsRepository: Repository<Lead>,
     @InjectRepository(Agreement)
     private agreementsRepository: Repository<Agreement>,
+    @InjectRepository(Proposal)
+    private proposalsRepository: Repository<Proposal>,
     private notificationsService: NotificationsService,
   ) {}
 
@@ -269,6 +273,78 @@ export class ComprehensiveNotificationsService {
         `Negotiation for "${leadName}" has been updated. Update: ${updateType}.`,
         'Negotiation',
         negotiationId,
+      );
+    }
+  }
+
+  /**
+   * Approval Workflow Completion
+   */
+  async notifyApprovalWorkflowCompleted(
+    context: ApprovalContext,
+    entityId: string,
+    leadId: string,
+    creatorId: string,
+    accountManagerId: string,
+  ): Promise<void> {
+    try {
+      // Get entity details
+      const entityType =
+        context === ApprovalContext.PROPOSAL ? 'Proposal' : 'Agreement';
+      const entity =
+        context === ApprovalContext.PROPOSAL
+          ? await this.proposalsRepository.findOne({ where: { id: entityId } })
+          : await this.agreementsRepository.findOne({
+              where: { id: entityId },
+            });
+
+      if (!entity) {
+        this.logger.warn(`Entity not found: ${context} ${entityId}`);
+        return;
+      }
+
+      // Get lead details
+      const lead = await this.leadsRepository.findOne({
+        where: { id: leadId },
+      });
+      const leadName = lead
+        ? lead.name || lead.organization || 'Unknown Lead'
+        : 'Unknown Lead';
+      const entityName =
+        context === ApprovalContext.PROPOSAL
+          ? (entity as any).title ||
+            `Proposal ${(entity as any).proposalNumber}`
+          : (entity as any).title || 'Agreement';
+
+      // Notify creator
+      await this.notificationsService.createNotification(
+        creatorId,
+        NotificationType.APPROVAL_WORKFLOW_COMPLETED,
+        `${entityType} Approved`,
+        `All approvals completed for ${entityType}: ${entityName} (Lead: ${leadName})`,
+        context.toLowerCase(),
+        entityId,
+      );
+
+      // Notify account manager (if different from creator)
+      if (accountManagerId && accountManagerId !== creatorId) {
+        await this.notificationsService.createNotification(
+          accountManagerId,
+          NotificationType.APPROVAL_WORKFLOW_COMPLETED,
+          `${entityType} Approved`,
+          `All approvals completed for ${entityType}: ${entityName} (Lead: ${leadName})`,
+          context.toLowerCase(),
+          entityId,
+        );
+      }
+
+      this.logger.log(
+        `Approval workflow completion notifications sent for ${context} ${entityId}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to send approval workflow completion notifications: ${error.message}`,
+        error.stack,
       );
     }
   }
@@ -632,7 +708,7 @@ export class ComprehensiveNotificationsService {
       });
     }
 
-    const scheduledText = scheduledDate 
+    const scheduledText = scheduledDate
       ? ` (Due: ${scheduledDate.toLocaleDateString()})`
       : '';
 

@@ -85,12 +85,20 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
           AgreementDelay,
         ],
         synchronize: configService.get('NODE_ENV') === 'development',
-        logging: configService.get('NODE_ENV') === 'development',
+        logging: configService.get('NODE_ENV') === 'development' ? 'all' : ['error', 'warn'],
         // Enable SSL for production Postgres (Neon requires sslmode=require)
-        ssl:
-          configService.get('NODE_ENV') === 'production'
+        // Can be overridden with DB_SSL environment variable
+        ssl: (() => {
+          const dbSsl = configService.get('DB_SSL');
+          if (dbSsl !== undefined) {
+            return dbSsl === 'true' ? { rejectUnauthorized: false } : false;
+          }
+          // Auto-detection: enable SSL for production non-localhost connections
+          return configService.get('NODE_ENV') === 'production' &&
+                 configService.get('DB_HOST') !== 'localhost'
             ? { rejectUnauthorized: false }
-            : false,
+            : false;
+        })(),
       }),
       inject: [ConfigService],
     }),

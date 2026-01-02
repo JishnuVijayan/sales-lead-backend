@@ -41,15 +41,19 @@ export class ProposalActivitiesService {
       createdById: userId,
     });
 
-    const savedActivity = await this.proposalActivitiesRepository.save(activity);
+    const savedActivity =
+      await this.proposalActivitiesRepository.save(activity);
 
     // Send notifications
-    const stakeholders = await this.notificationsService.getEntityStakeholders('Lead', createDto.leadId || proposal.leadId);
+    const stakeholders = await this.notificationsService.getEntityStakeholders(
+      'Lead',
+      createDto.leadId || proposal.leadId,
+    );
 
     // Notify stakeholders about new activity (excluding the creator and assignee)
     if (stakeholders.length > 0) {
       const filteredStakeholders = stakeholders.filter(
-        id => id !== userId && id !== createDto.assignedToId
+        (id) => id !== userId && id !== createDto.assignedToId,
       );
       if (filteredStakeholders.length > 0) {
         await this.notificationsService.notifyActivityAdded(
@@ -57,7 +61,7 @@ export class ProposalActivitiesService {
           createDto.proposalId,
           createDto.activityType,
           userId,
-          filteredStakeholders
+          filteredStakeholders,
         );
       }
     }
@@ -73,7 +77,7 @@ export class ProposalActivitiesService {
         'Proposal',
         createDto.proposalId,
         proposal.title || 'Unknown Proposal',
-        undefined // No scheduled date for proposal activities
+        undefined, // No scheduled date for proposal activities
       );
     }
 

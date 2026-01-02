@@ -35,6 +35,7 @@ export class LeadsService {
       isActive: true,
       lastActionDate: new Date(),
       createdById: userId,
+      assignedToId: userId, // Auto-assign to creator (account manager)
     });
 
     const savedLead = await this.leadsRepository.save(lead);
@@ -244,7 +245,12 @@ export class LeadsService {
   async claim(id: string, userId: string): Promise<Lead> {
     const lead = await this.findOne(id);
 
-    lead.assignedToId = userId;
+    // Only allow claiming if not already claimed and user has SALES_MANAGER role
+    if (lead.claimedById) {
+      throw new BadRequestException('Lead is already claimed');
+    }
+
+    lead.claimedById = userId;
     lead.lastActionDate = new Date();
 
     return await this.leadsRepository.save(lead);
