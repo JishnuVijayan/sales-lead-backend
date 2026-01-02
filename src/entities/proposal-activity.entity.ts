@@ -70,6 +70,13 @@ export class ProposalActivity {
   @Column({ name: 'created_by_id' })
   createdById: string;
 
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'assigned_to_id' })
+  assignedTo: User;
+
+  @Column({ name: 'assigned_to_id', nullable: true })
+  assignedToId: string;
+
   @CreateDateColumn({ name: 'created_date' })
   createdDate: Date;
 

@@ -66,6 +66,7 @@ export enum NotificationType {
 
   // Activity Notifications
   ACTIVITY_ADDED = 'Activity Added',
+  ACTIVITY_ASSIGNED = 'Activity Assigned',
   COMMENT_ADDED = 'Comment Added',
   DOCUMENT_UPLOADED = 'Document Uploaded',
 }

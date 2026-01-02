@@ -90,4 +90,11 @@ export class AgreementActivity {
 
   @Column({ name: 'completed_by_id', nullable: true })
   completedById: string;
+
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'assigned_to_id' })
+  assignedTo: User;
+
+  @Column({ name: 'assigned_to_id', nullable: true })
+  assignedToId: string;
 }

@@ -30,6 +30,10 @@ export class CreateAgreementActivityDto {
   @IsOptional()
   description?: string;
 
+  @IsUUID()
+  @IsOptional()
+  assignedToId?: string;
+
   @IsOptional()
   metadata?: Record<string, any>;
 }

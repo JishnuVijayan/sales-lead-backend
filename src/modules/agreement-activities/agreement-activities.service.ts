@@ -10,6 +10,7 @@ import {
   CreateAgreementActivityDto,
   CreateAgreementActivityCommentDto,
 } from './dto/agreement-activity.dto';
+import { ComprehensiveNotificationsService } from '../notifications/comprehensive-notifications.service';
 
 @Injectable()
 export class AgreementActivitiesService {
@@ -18,6 +19,7 @@ export class AgreementActivitiesService {
     private agreementActivitiesRepository: Repository<AgreementActivity>,
     @InjectRepository(Agreement)
     private agreementsRepository: Repository<Agreement>,
+    private notificationsService: ComprehensiveNotificationsService,
   ) {}
 
   async create(
@@ -39,7 +41,43 @@ export class AgreementActivitiesService {
       createdById: userId,
     });
 
-    return await this.agreementActivitiesRepository.save(activity);
+    const savedActivity = await this.agreementActivitiesRepository.save(activity);
+
+    // Send notifications
+    const stakeholders = await this.notificationsService.getEntityStakeholders('Lead', createDto.leadId || agreement.leadId);
+
+    // Notify stakeholders about new activity (excluding the creator and assignee)
+    if (stakeholders.length > 0) {
+      const filteredStakeholders = stakeholders.filter(
+        id => id !== userId && id !== createDto.assignedToId
+      );
+      if (filteredStakeholders.length > 0) {
+        await this.notificationsService.notifyActivityAdded(
+          'Agreement',
+          createDto.agreementId,
+          createDto.activityType,
+          userId,
+          filteredStakeholders
+        );
+      }
+    }
+
+    // Notify assigned user if activity is assigned
+    if (createDto.assignedToId) {
+      await this.notificationsService.notifyActivityAssigned(
+        savedActivity.id,
+        savedActivity.subject,
+        savedActivity.activityType,
+        createDto.assignedToId,
+        userId,
+        'Agreement',
+        createDto.agreementId,
+        agreement.title || 'Unknown Agreement',
+        undefined // No scheduled date for agreement activities
+      );
+    }
+
+    return savedActivity;
   }
 
   async createComment(

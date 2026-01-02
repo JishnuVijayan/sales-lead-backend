@@ -49,10 +49,7 @@ export class ComprehensiveNotificationsService {
         lead.assignedToId,
         NotificationType.LEAD_ASSIGNED,
         'New Lead Assigned to You',
-        `<p>A new lead <strong>${lead.organization || lead.name}</strong> has been assigned to you by <strong>${creatorName}</strong>.</p>
-         <p><strong>Contact:</strong> ${lead.name}</p>
-         <p><strong>Source:</strong> ${lead.source}</p>
-         <p>Please review and take appropriate action.</p>`,
+        `A new lead "${lead.organization || lead.name}" has been assigned to you by ${creatorName}. Contact: ${lead.name}, Source: ${lead.source}. Please review and take appropriate action.`,
         'Lead',
         leadId,
       );
@@ -68,8 +65,7 @@ export class ComprehensiveNotificationsService {
         manager.id,
         NotificationType.LEAD_CREATED,
         'New Lead Created',
-        `<p>A new lead <strong>${lead.organization || lead.name}</strong> has been created by <strong>${creatorName}</strong>.</p>
-         <p><strong>Status:</strong> ${lead.status}</p>`,
+        `A new lead "${lead.organization || lead.name}" has been created by ${creatorName}. Status: ${lead.status}.`,
         'Lead',
         leadId,
       );
@@ -107,10 +103,7 @@ export class ComprehensiveNotificationsService {
         recipientId,
         NotificationType.LEAD_QUALIFIED,
         'Lead Qualified',
-        `<p>Lead <strong>${lead.organization || lead.name}</strong> has been qualified.</p>
-         <p><strong>Estimated Budget:</strong> ₹${lead.estimatedBudget?.toLocaleString('en-IN') || 'N/A'}</p>
-         <p>You can now proceed with proposal preparation.</p>
-         <p><a href="${process.env.FRONTEND_URL}/app/leads/${leadId}">View Lead</a></p>`,
+        `Lead "${lead.organization || lead.name}" has been qualified. Estimated Budget: ₹${lead.estimatedBudget?.toLocaleString('en-IN') || 'N/A'}. You can now proceed with proposal preparation.`,
         'Lead',
         leadId,
       );
@@ -135,9 +128,7 @@ export class ComprehensiveNotificationsService {
         recipientId,
         NotificationType.LEAD_QUALIFICATION_REJECTED,
         'Lead Qualification Rejected',
-        `<p>Lead <strong>${lead.organization || lead.name}</strong> qualification was rejected.</p>
-         <p><strong>Reason:</strong> ${reason}</p>
-         <p><a href="${process.env.FRONTEND_URL}/app/leads/${leadId}">View Lead</a></p>`,
+        `Lead "${lead.organization || lead.name}" qualification was rejected. Reason: ${reason}.`,
         'Lead',
         leadId,
       );
@@ -169,9 +160,7 @@ export class ComprehensiveNotificationsService {
         user.id,
         NotificationType.PROPOSAL_CREATED,
         'New Proposal Created - Review Required',
-        `<p>A new proposal has been created for lead <strong>${lead.organization || lead.name}</strong>.</p>
-         <p>Your technical review is required.</p>
-         <p><a href="${process.env.FRONTEND_URL}/app/proposals/${proposalId}">View Proposal</a></p>`,
+        `A new proposal has been created for lead "${lead.organization || lead.name}". Your technical review is required.`,
         'Proposal',
         proposalId,
       );
@@ -202,9 +191,7 @@ export class ComprehensiveNotificationsService {
         approver.id,
         NotificationType.PROPOSAL_APPROVAL_REQUIRED,
         `Proposal Approval Required - ${roleNames[approverRole] || approverRole}`,
-        `<p>A proposal for <strong>${leadName}</strong> requires your approval.</p>
-         <p>Please review and approve or provide feedback.</p>
-         <p><a href="${process.env.FRONTEND_URL}/app/proposals/${proposalId}">Review Proposal</a></p>`,
+        `A proposal for "${leadName}" requires your approval. Please review and approve or provide feedback.`,
         'Proposal',
         proposalId,
       );
@@ -221,8 +208,7 @@ export class ComprehensiveNotificationsService {
       accountManagerId,
       NotificationType.PROPOSAL_APPROVED,
       `Proposal Approved by ${approverRole}`,
-      `<p>Your proposal has been approved by ${approverRole}.</p>
-       <p><a href="${process.env.FRONTEND_URL}/app/proposals/${proposalId}">View Proposal</a></p>`,
+      `Your proposal has been approved by ${approverRole}.`,
       'Proposal',
       proposalId,
     );
@@ -238,9 +224,7 @@ export class ComprehensiveNotificationsService {
       accountManagerId,
       NotificationType.PROPOSAL_REJECTED,
       'Proposal Requires Revision',
-      `<p>Your proposal requires revision.</p>
-       <p><strong>Feedback:</strong> ${reason}</p>
-       <p><a href="${process.env.FRONTEND_URL}/app/proposals/${proposalId}">View Proposal</a></p>`,
+      `Your proposal requires revision. Feedback: ${reason}.`,
       'Proposal',
       proposalId,
     );
@@ -264,8 +248,7 @@ export class ComprehensiveNotificationsService {
         manager.id,
         NotificationType.NEGOTIATION_STARTED,
         'Negotiation Started',
-        `<p>Negotiation has started for <strong>${leadName}</strong>.</p>
-         <p><a href="${process.env.FRONTEND_URL}/app/negotiations/${negotiationId}">View Negotiation</a></p>`,
+        `Negotiation has started for "${leadName}".`,
         'Negotiation',
         negotiationId,
       );
@@ -283,9 +266,7 @@ export class ComprehensiveNotificationsService {
         userId,
         NotificationType.NEGOTIATION_UPDATED,
         `Negotiation Update - ${updateType}`,
-        `<p>Negotiation for <strong>${leadName}</strong> has been updated.</p>
-         <p><strong>Update:</strong> ${updateType}</p>
-         <p><a href="${process.env.FRONTEND_URL}/app/negotiations/${negotiationId}">View Negotiation</a></p>`,
+        `Negotiation for "${leadName}" has been updated. Update: ${updateType}.`,
         'Negotiation',
         negotiationId,
       );
@@ -315,9 +296,7 @@ export class ComprehensiveNotificationsService {
         recipientId,
         NotificationType.LEAD_WON,
         '🎉 Congratulations! Lead Won',
-        `<p><strong>Congratulations!</strong> Lead <strong>${leadName}</strong> has been marked as Won.</p>
-         <p>A work order has been created.</p>
-         <p><a href="${process.env.FRONTEND_URL}/app/work-orders/${workOrderId}">View Work Order</a></p>`,
+        `Congratulations! Lead "${leadName}" has been marked as Won. A work order has been created.`,
         'Lead',
         leadId,
       );
@@ -333,8 +312,7 @@ export class ComprehensiveNotificationsService {
         manager.id,
         NotificationType.LEAD_WON,
         'Lead Won - Work Order Created',
-        `<p>Lead <strong>${leadName}</strong> has been successfully converted to Won.</p>
-         <p><a href="${process.env.FRONTEND_URL}/app/work-orders/${workOrderId}">View Work Order</a></p>`,
+        `Lead "${leadName}" has been successfully converted to Won.`,
         'Lead',
         leadId,
       );
@@ -350,9 +328,7 @@ export class ComprehensiveNotificationsService {
         dm.id,
         NotificationType.WORK_ORDER_CREATED,
         'New Work Order - Action Required',
-        `<p>A new work order has been created for <strong>${leadName}</strong>.</p>
-         <p>Please review and begin planning for delivery.</p>
-         <p><a href="${process.env.FRONTEND_URL}/app/work-orders/${workOrderId}">View Work Order</a></p>`,
+        `A new work order has been created for "${leadName}". Please review and begin planning for delivery.`,
         'WorkOrder',
         workOrderId,
       );
@@ -368,9 +344,7 @@ export class ComprehensiveNotificationsService {
       assignedToId,
       NotificationType.WORK_ORDER_ASSIGNED,
       'Work Order Assigned to You',
-      `<p>Work order <strong>${workOrderTitle}</strong> has been assigned to you.</p>
-       <p>Please review the requirements and begin planning.</p>
-       <p><a href="${process.env.FRONTEND_URL}/app/work-orders/${workOrderId}">View Work Order</a></p>`,
+      `Work order "${workOrderTitle}" has been assigned to you. Please review the requirements and begin planning.`,
       'WorkOrder',
       workOrderId,
     );
@@ -395,9 +369,7 @@ export class ComprehensiveNotificationsService {
         user.id,
         NotificationType.LEGAL_REVIEW_REQUIRED,
         'New Agreement - Legal Review Required',
-        `<p>A new agreement for <strong>${leadName}</strong> has been created.</p>
-         <p>Please draft or review the agreement and ensure legal compliance.</p>
-         <p><a href="${process.env.FRONTEND_URL}/app/agreements/${agreementId}">Review Agreement</a></p>`,
+        `A new agreement for "${leadName}" has been created. Please draft or review the agreement and ensure legal compliance.`,
         'Agreement',
         agreementId,
       );
@@ -477,10 +449,7 @@ export class ComprehensiveNotificationsService {
         recipient.id,
         config.type,
         `Agreement Review Required - ${newStage}`,
-        `<p>Agreement for <strong>${agreement.title}</strong> is now in <strong>${newStage}</strong> stage.</p>
-         <p>Please ${actionMessages[newStage] || 'take appropriate action'}.</p>
-         <p><strong>Contract Value:</strong> ₹${agreement.contractValue?.toLocaleString('en-IN') || 'N/A'}</p>
-         <p><a href="${process.env.FRONTEND_URL}/app/agreements/${agreementId}">Review Agreement</a></p>`,
+        `Agreement for "${agreement.title}" is now in ${newStage} stage. Please ${actionMessages[newStage] || 'take appropriate action'}. Contract Value: ₹${agreement.contractValue?.toLocaleString('en-IN') || 'N/A'}`,
         'Agreement',
         agreementId,
       );
@@ -513,9 +482,7 @@ export class ComprehensiveNotificationsService {
       accountManagerId,
       notificationType,
       `${completedStage} Completed`,
-      `<p>${completedStage} for your agreement has been completed.</p>
-       <p><strong>Next Stage:</strong> ${nextStage}</p>
-       <p><a href="${process.env.FRONTEND_URL}/app/agreements/${agreementId}">View Agreement</a></p>`,
+      `${completedStage} for your agreement has been completed. Next Stage: ${nextStage}`,
       'Agreement',
       agreementId,
     );
@@ -538,10 +505,7 @@ export class ComprehensiveNotificationsService {
         ceo.id,
         NotificationType.CEO_APPROVAL_PENDING,
         'CEO Approval Required - High Value Agreement',
-        `<p>Agreement <strong>${agreementTitle}</strong> requires your approval.</p>
-         <p><strong>Contract Value:</strong> ₹${contractValue?.toLocaleString('en-IN')}</p>
-         <p>Please review strategic importance, risk exposure, and commercial value.</p>
-         <p><a href="${process.env.FRONTEND_URL}/app/agreements/${agreementId}">Review & Approve</a></p>`,
+        `Agreement "${agreementTitle}" requires your approval. Contract Value: ₹${contractValue?.toLocaleString('en-IN')}. Please review strategic importance, risk exposure, and commercial value.`,
         'Agreement',
         agreementId,
       );
@@ -561,9 +525,7 @@ export class ComprehensiveNotificationsService {
         approver.id,
         NotificationType.ULCCS_APPROVAL_PENDING,
         'ULCCS Approval Required',
-        `<p>ULCCS-related agreement <strong>${agreementTitle}</strong> requires your approval.</p>
-         <p>Please review and provide approval.</p>
-         <p><a href="${process.env.FRONTEND_URL}/app/agreements/${agreementId}">Review & Approve</a></p>`,
+        `ULCCS-related agreement "${agreementTitle}" requires your approval. Please review and provide approval.`,
         'Agreement',
         agreementId,
       );
@@ -582,9 +544,7 @@ export class ComprehensiveNotificationsService {
       accountManagerId,
       NotificationType.AGREEMENT_READY_FOR_SIGNING,
       'Agreement Ready for Signing',
-      `<p>Agreement <strong>${agreementTitle}</strong> has received all approvals.</p>
-       <p>You can now proceed with signing and coordinate with the client for their signature.</p>
-       <p><a href="${process.env.FRONTEND_URL}/app/agreements/${agreementId}">View Agreement</a></p>`,
+      `Agreement "${agreementTitle}" has received all approvals. You can now proceed with signing and coordinate with the client for their signature.`,
       'Agreement',
       agreementId,
     );
@@ -599,9 +559,7 @@ export class ComprehensiveNotificationsService {
       accountManagerId,
       NotificationType.COMPANY_SIGNED,
       'Company Signature Completed',
-      `<p>Company has signed the agreement <strong>${agreementTitle}</strong>.</p>
-       <p>Please coordinate with client for their signature to complete the agreement.</p>
-       <p><a href="${process.env.FRONTEND_URL}/app/agreements/${agreementId}">View Agreement</a></p>`,
+      `Company has signed the agreement "${agreementTitle}". Please coordinate with client for their signature to complete the agreement.`,
       'Agreement',
       agreementId,
     );
@@ -617,10 +575,7 @@ export class ComprehensiveNotificationsService {
         userId,
         NotificationType.AGREEMENT_FULLY_EXECUTED,
         '✅ Agreement Fully Executed',
-        `<p><strong>Success!</strong> Agreement <strong>${agreementTitle}</strong> has been fully executed.</p>
-         <p>Both company and client signatures are complete.</p>
-         <p>You can now proceed with project kickoff.</p>
-         <p><a href="${process.env.FRONTEND_URL}/app/agreements/${agreementId}">View Agreement</a></p>`,
+        `Success! Agreement "${agreementTitle}" has been fully executed. Both company and client signatures are complete. You can now proceed with project kickoff.`,
         'Agreement',
         agreementId,
       );
@@ -637,21 +592,58 @@ export class ComprehensiveNotificationsService {
     addedBy: string,
     stakeholders: string[],
   ): Promise<void> {
-    const activityUser = await this.usersRepository.findOne({
-      where: { id: addedBy },
-    });
+    let activityUser: User | null = null;
+    if (addedBy && addedBy.trim() !== '') {
+      activityUser = await this.usersRepository.findOne({
+        where: { id: addedBy },
+      });
+    }
 
     for (const userId of stakeholders.filter((id) => id !== addedBy)) {
       await this.notificationsService.createNotification(
         userId,
         NotificationType.ACTIVITY_ADDED,
         `New ${activityType} Activity`,
-        `<p>${activityUser?.name || 'Someone'} added a new ${activityType} activity.</p>
-         <p><a href="${process.env.FRONTEND_URL}/app/${entityType.toLowerCase()}s/${entityId}">View Details</a></p>`,
+        `${activityUser?.name || 'Someone'} added a new ${activityType} activity.`,
         entityType,
         entityId,
       );
     }
+  }
+
+  /**
+   * Activity Assignment Notifications
+   */
+  async notifyActivityAssigned(
+    activityId: string,
+    activityTitle: string,
+    activityType: string,
+    assignedToId: string,
+    assignedBy: string,
+    entityType: string,
+    entityId: string,
+    entityName: string,
+    scheduledDate?: Date,
+  ): Promise<void> {
+    let assignedByUser: User | null = null;
+    if (assignedBy && assignedBy.trim() !== '') {
+      assignedByUser = await this.usersRepository.findOne({
+        where: { id: assignedBy },
+      });
+    }
+
+    const scheduledText = scheduledDate 
+      ? ` (Due: ${scheduledDate.toLocaleDateString()})`
+      : '';
+
+    await this.notificationsService.createNotification(
+      assignedToId,
+      NotificationType.ACTIVITY_ASSIGNED,
+      'Activity Assigned to You',
+      `You have been assigned: "${activityTitle}" (${activityType}) for ${entityType.toLowerCase()} "${entityName}"${scheduledText}. Assigned by ${assignedByUser?.name || 'Someone'}.`,
+      entityType,
+      entityId,
+    );
   }
 
   async notifyDocumentUploaded(
@@ -670,8 +662,7 @@ export class ComprehensiveNotificationsService {
         userId,
         NotificationType.DOCUMENT_UPLOADED,
         'New Document Uploaded',
-        `<p>${uploader?.name || 'Someone'} uploaded a document: <strong>${documentName}</strong></p>
-         <p><a href="${process.env.FRONTEND_URL}/app/${entityType.toLowerCase()}s/${entityId}">View Details</a></p>`,
+        `${uploader?.name || 'Someone'} uploaded a document: "${documentName}"`,
         entityType,
         entityId,
       );
@@ -681,7 +672,7 @@ export class ComprehensiveNotificationsService {
   /**
    * Get all stakeholders for an entity
    */
-  private async getEntityStakeholders(
+  async getEntityStakeholders(
     entityType: string,
     entityId: string,
   ): Promise<string[]> {
