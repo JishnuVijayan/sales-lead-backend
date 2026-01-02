@@ -21,6 +21,8 @@ import {
 } from './dto/approval.dto';
 import { ProposalActivitiesService } from '../proposal-activities/proposal-activities.service';
 import { ProposalActivityType } from '../../entities/proposal-activity.entity';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '../../entities/notification.entity';
 
 @Injectable()
 export class ApprovalsService {
@@ -30,6 +32,7 @@ export class ApprovalsService {
     @InjectRepository(User)
     private usersRepository: Repository<User>,
     private proposalActivitiesService: ProposalActivitiesService,
+    private notificationsService: NotificationsService,
   ) {}
 
   /**
@@ -76,7 +79,33 @@ export class ApprovalsService {
       approvals.push(approval);
     }
 
-    return await this.approvalsRepository.save(approvals);
+    const savedApprovals = await this.approvalsRepository.save(approvals);
+
+    // Create notifications for each approver
+    for (const approval of savedApprovals) {
+      if (approval.approverId) {
+        // Get lead name for notification
+        const lead = await this.approvalsRepository
+          .createQueryBuilder('approval')
+          .leftJoinAndSelect('approval.lead', 'lead')
+          .where('approval.id = :id', { id: approval.id })
+          .getOne();
+
+        const entityType = approval.context === ApprovalContext.PROPOSAL ? 'Proposal' : 'Agreement';
+        const leadName = lead?.lead?.name || lead?.lead?.organization || 'Unknown';
+
+        await this.notificationsService.createNotification(
+          approval.approverId,
+          NotificationType.PROPOSAL_APPROVAL_REQUIRED,
+          `Approval Required: ${entityType}`,
+          `You have a new ${approval.stage} approval request for ${entityType} (Lead: ${leadName})`,
+          entityType.toLowerCase(),
+          approval.entityId,
+        );
+      }
+    }
+
+    return savedApprovals;
   }
 
   /**

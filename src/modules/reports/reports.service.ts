@@ -9,6 +9,8 @@ import {
   Notification,
   NotificationStatus,
 } from '../../entities/notification.entity';
+import { Approval, ApprovalStatus, ApprovalStage, ApprovalContext } from '../../entities/approval.entity';
+import { AgreementDelay, DelayReason } from '../../entities/agreement-delay.entity';
 
 export interface UserLeadStats {
   userId: string;
@@ -131,6 +133,31 @@ export interface ValueComparison {
   }[];
 }
 
+export interface AgreementPendingItems {
+  stage: string;
+  pendingApprovals: number;
+  pendingReviews: {
+    delivery: number;
+    procurement: number;
+    finance: number;
+    ceo: number;
+    ulccs: number;
+    legal: number;
+    sales: number;
+  };
+  averageWaitTime: number;
+  totalItems: number;
+}
+
+export interface AgreementDelayReport {
+  date: string;
+  ownerId: string;
+  ownerName: string;
+  totalDelays: number;
+  delaysByReason: Record<string, number>;
+  averageDelayDuration: number;
+}
+
 @Injectable()
 export class ReportsService {
   constructor(
@@ -146,6 +173,10 @@ export class ReportsService {
     private slaConfigRepository: Repository<SLAConfig>,
     @InjectRepository(Notification)
     private notificationsRepository: Repository<Notification>,
+    @InjectRepository(Approval)
+    private approvalsRepository: Repository<Approval>,
+    @InjectRepository(AgreementDelay)
+    private agreementDelaysRepository: Repository<AgreementDelay>,
   ) {}
 
   // Helper method to get actual revenue from agreements
@@ -1105,5 +1136,177 @@ export class ReportsService {
       conversionRate: Math.round(conversionRate * 10) / 10,
       byStage,
     };
+  }
+
+  async getAgreementPendingItems(
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<AgreementPendingItems[]> {
+    // Get all agreements that are not in final states
+    const agreements = await this.agreementsRepository.find({
+      where: {
+        stage: In([
+          AgreementStage.DRAFT,
+          AgreementStage.LEGAL_REVIEW,
+          AgreementStage.DELIVERY_REVIEW,
+          AgreementStage.PROCUREMENT_REVIEW,
+          AgreementStage.FINANCE_REVIEW,
+          AgreementStage.CLIENT_REVIEW,
+          AgreementStage.CEO_APPROVAL,
+          AgreementStage.ULCCS_APPROVAL,
+          AgreementStage.PENDING_SIGNATURE,
+        ]),
+      },
+      relations: ['lead'],
+    });
+
+    // Get all pending approvals for these agreements
+    const agreementIds = agreements.map((a) => a.id);
+    const pendingApprovals = await this.approvalsRepository.find({
+      where: {
+        context: ApprovalContext.AGREEMENT,
+        entityId: In(agreementIds),
+        status: ApprovalStatus.PENDING,
+      },
+    });
+
+    // Group by agreement stage
+    const stageGroups: Record<string, AgreementPendingItems> = {};
+
+    // Initialize all stages
+    const allStages = [
+      AgreementStage.DRAFT,
+      AgreementStage.LEGAL_REVIEW,
+      AgreementStage.DELIVERY_REVIEW,
+      AgreementStage.PROCUREMENT_REVIEW,
+      AgreementStage.FINANCE_REVIEW,
+      AgreementStage.CLIENT_REVIEW,
+      AgreementStage.CEO_APPROVAL,
+      AgreementStage.ULCCS_APPROVAL,
+      AgreementStage.PENDING_SIGNATURE,
+    ];
+
+    for (const stage of allStages) {
+      stageGroups[stage] = {
+        stage,
+        pendingApprovals: 0,
+        pendingReviews: {
+          delivery: 0,
+          procurement: 0,
+          finance: 0,
+          ceo: 0,
+          ulccs: 0,
+          legal: 0,
+          sales: 0,
+        },
+        averageWaitTime: 0,
+        totalItems: 0,
+      };
+    }
+
+    // Count pending approvals by stage and type
+    for (const approval of pendingApprovals) {
+      const agreement = agreements.find((a) => a.id === approval.entityId);
+      if (!agreement) continue;
+
+      const stageGroup = stageGroups[agreement.stage];
+      if (stageGroup) {
+        stageGroup.pendingApprovals++;
+
+        // Map approval stage to our categories
+        switch (approval.stage) {
+          case ApprovalStage.DELIVERY_MANAGER:
+            stageGroup.pendingReviews.delivery++;
+            break;
+          case ApprovalStage.PROCUREMENT:
+            stageGroup.pendingReviews.procurement++;
+            break;
+          case ApprovalStage.FINANCE:
+            stageGroup.pendingReviews.finance++;
+            break;
+          case ApprovalStage.CEO:
+            stageGroup.pendingReviews.ceo++;
+            break;
+          case ApprovalStage.ULCCS:
+            stageGroup.pendingReviews.ulccs++;
+            break;
+          case ApprovalStage.LEGAL:
+            stageGroup.pendingReviews.legal++;
+            break;
+          case ApprovalStage.ACCOUNT_MANAGER:
+          case ApprovalStage.SALES_MANAGER:
+            stageGroup.pendingReviews.sales++;
+            break;
+        }
+
+        // Calculate wait time
+        const waitTime = Date.now() - approval.requestedDate.getTime();
+        const waitTimeDays = waitTime / (1000 * 60 * 60 * 24);
+        stageGroup.averageWaitTime =
+          (stageGroup.averageWaitTime * (stageGroup.totalItems) + waitTimeDays) /
+          (stageGroup.totalItems + 1);
+        stageGroup.totalItems++;
+      }
+    }
+
+    // Convert to array and filter out stages with no pending items
+    return Object.values(stageGroups).filter(
+      (stage) => stage.pendingApprovals > 0,
+    );
+  }
+
+  async getAgreementDelayReport(
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<AgreementDelayReport[]> {
+    const query = this.agreementDelaysRepository
+      .createQueryBuilder('delay')
+      .leftJoinAndSelect('delay.responsibleOwner', 'owner')
+      .leftJoinAndSelect('delay.agreement', 'agreement');
+
+    if (startDate && endDate) {
+      query.andWhere('delay.startDate BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      });
+    }
+
+    const delays = await query.getMany();
+
+    // Group by date and owner
+    const groupedDelays: Record<string, AgreementDelayReport> = {};
+
+    for (const delay of delays) {
+      const dateKey = delay.startDate.toISOString().split('T')[0]; // YYYY-MM-DD
+      const ownerId = delay.responsibleOwnerId || 'unassigned';
+      const ownerName = delay.responsibleOwner?.name || 'Unassigned';
+      const key = `${dateKey}-${ownerId}`;
+
+      if (!groupedDelays[key]) {
+        groupedDelays[key] = {
+          date: dateKey,
+          ownerId,
+          ownerName,
+          totalDelays: 0,
+          delaysByReason: {},
+          averageDelayDuration: 0,
+        };
+      }
+
+      const group = groupedDelays[key];
+      group.totalDelays++;
+
+      // Count by reason
+      const reason = delay.delayReason;
+      group.delaysByReason[reason] = (group.delaysByReason[reason] || 0) + 1;
+
+      // Calculate average delay duration
+      const duration = delay.delayDurationDays || 0;
+      group.averageDelayDuration =
+        (group.averageDelayDuration * (group.totalDelays - 1) + duration) /
+        group.totalDelays;
+    }
+
+    return Object.values(groupedDelays).sort((a, b) => a.date.localeCompare(b.date));
   }
 }

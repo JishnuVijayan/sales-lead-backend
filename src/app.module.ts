@@ -25,6 +25,7 @@ import { AgreementActivity } from './entities/agreement-activity.entity';
 import { SLAConfig } from './entities/sla-config.entity';
 import { Notification } from './entities/notification.entity';
 import { ProposalStageHistory } from './entities/proposal-stage-history.entity';
+import { AgreementDelay } from './entities/agreement-delay.entity';
 import { LeadsModule } from './modules/leads/leads.module';
 import { ActivitiesModule } from './modules/activities/activities.module';
 import { ProposalsModule } from './modules/proposals/proposals.module';
@@ -81,6 +82,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
           AgreementApprovalConfig,
           SLAConfig,
           Notification,
+          AgreementDelay,
         ],
         synchronize: configService.get('NODE_ENV') === 'development',
         logging: configService.get('NODE_ENV') === 'development',

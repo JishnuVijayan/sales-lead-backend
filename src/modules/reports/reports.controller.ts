@@ -116,4 +116,24 @@ export class ReportsController {
     const end = endDate ? new Date(endDate) : undefined;
     return this.reportsService.getValueComparison(start, end);
   }
+
+  @Get('agreement-pending-items')
+  async getAgreementPendingItems(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    const start = startDate ? new Date(startDate) : undefined;
+    const end = endDate ? new Date(endDate) : undefined;
+    return this.reportsService.getAgreementPendingItems(start, end);
+  }
+
+  @Get('agreement-delays')
+  async getAgreementDelayReport(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    const start = startDate ? new Date(startDate) : undefined;
+    const end = endDate ? new Date(endDate) : undefined;
+    return this.reportsService.getAgreementDelayReport(start, end);
+  }
 }

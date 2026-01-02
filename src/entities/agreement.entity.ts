@@ -12,6 +12,7 @@ import { Lead } from './lead.entity';
 import { User } from './user.entity';
 import { AgreementStageHistory } from './agreement-stage-history.entity';
 import { AgreementApprovalConfig } from './agreement-approval-config.entity';
+import { AgreementDelay } from './agreement-delay.entity';
 
 export enum AgreementStage {
   DRAFT = 'Draft',
@@ -354,4 +355,7 @@ export class Agreement {
 
   @OneToMany(() => AgreementStageHistory, (history) => history.agreement)
   stageHistory: AgreementStageHistory[];
+
+  @OneToMany(() => AgreementDelay, (delay) => delay.agreement)
+  delays: AgreementDelay[];
 }

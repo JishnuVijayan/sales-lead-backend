@@ -38,6 +38,7 @@ export {
   AgreementActivity,
   AgreementActivityType,
 } from './agreement-activity.entity';
+export { AgreementDelay, DelayReason } from './agreement-delay.entity';
 export { SLAConfig, SLAStageType } from './sla-config.entity';
 export {
   Notification,

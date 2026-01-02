@@ -7,6 +7,7 @@ import {
   NotificationStatus,
 } from '../../entities/notification.entity';
 import { User } from '../../entities/user.entity';
+import { SseNotificationsService } from './sse-notifications.service';
 import * as nodemailer from 'nodemailer';
 
 @Injectable()
@@ -19,6 +20,7 @@ export class NotificationsService {
     private notificationsRepository: Repository<Notification>,
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    private sseNotificationsService: SseNotificationsService,
   ) {
     // Configure email transporter (update with your SMTP settings)
     this.transporter = nodemailer.createTransport({
@@ -53,6 +55,9 @@ export class NotificationsService {
 
     const saved = await this.notificationsRepository.save(notification);
 
+    // Push notification via SSE to user if they're connected
+    this.pushNotificationViaSSE(saved);
+
     // Send email only if explicitly requested
     if (sendEmail && process.env.SMTP_USER) {
       this.sendEmail(saved.id).catch((err) =>
@@ -60,13 +65,42 @@ export class NotificationsService {
           `Failed to send notification ${saved.id}: ${err.message}`,
         ),
       );
-    } else {
-      // Mark as "sent" for in-app notifications (no email needed)
-      saved.status = NotificationStatus.SENT;
-      await this.notificationsRepository.save(saved);
     }
+    // Note: In-app notifications remain in PENDING status until user marks as read
 
     return saved;
+  }
+
+  /**
+   * Push notification to user via SSE if they're connected
+   */
+  private pushNotificationViaSSE(notification: Notification): void {
+    try {
+      const pushed = this.sseNotificationsService.pushToUser(
+        notification.recipientId,
+        {
+          id: notification.id,
+          type: notification.type,
+          subject: notification.subject,
+          message: notification.message,
+          entityType: notification.entityType,
+          entityId: notification.entityId,
+          createdDate: notification.createdDate,
+        },
+      );
+
+      if (pushed) {
+        this.logger.log(
+          `Pushed notification ${notification.id} via SSE to user ${notification.recipientId}`,
+        );
+      } else {
+        this.logger.debug(
+          `User ${notification.recipientId} not connected, notification will be fetched on login`,
+        );
+      }
+    } catch (error) {
+      this.logger.error(`Failed to push notification via SSE: ${error.message}`);
+    }
   }
 
   async sendEmail(notificationId: string): Promise<void> {

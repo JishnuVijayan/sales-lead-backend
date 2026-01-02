@@ -11,6 +11,8 @@ import { Agreement } from '../../entities/agreement.entity';
 import { AgreementStageHistory } from '../../entities/agreement-stage-history.entity';
 import { SLAConfig } from '../../entities/sla-config.entity';
 import { Notification } from '../../entities/notification.entity';
+import { Approval } from '../../entities/approval.entity';
+import { AgreementDelay } from '../../entities/agreement-delay.entity';
 
 @Module({
   imports: [
@@ -24,6 +26,8 @@ import { Notification } from '../../entities/notification.entity';
       AgreementStageHistory,
       SLAConfig,
       Notification,
+      Approval,
+      AgreementDelay,
     ]),
   ],
   controllers: [ReportsController],
