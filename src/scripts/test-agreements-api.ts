@@ -15,7 +15,10 @@ let testAgreementId = '';
 async function login() {
   console.log('\n=== Testing Login ===');
   try {
-    const response = await axios.post(`${API_BASE}/users/login`, TEST_CREDENTIALS);
+    const response = await axios.post(
+      `${API_BASE}/users/login`,
+      TEST_CREDENTIALS,
+    );
     authToken = response.data.access_token;
     console.log('✅ Login successful');
     console.log('Token:', authToken.substring(0, 20) + '...');
@@ -40,7 +43,10 @@ async function getLeads() {
     }
     return response.data;
   } catch (error: any) {
-    console.error('❌ Get leads failed:', error.response?.data || error.message);
+    console.error(
+      '❌ Get leads failed:',
+      error.response?.data || error.message,
+    );
     return [];
   }
 }
@@ -74,7 +80,10 @@ async function createAgreement() {
     console.log('Stage:', response.data.stage);
     return response.data;
   } catch (error: any) {
-    console.error('❌ Create agreement failed:', error.response?.data || error.message);
+    console.error(
+      '❌ Create agreement failed:',
+      error.response?.data || error.message,
+    );
     return null;
   }
 }
@@ -88,7 +97,10 @@ async function getAgreements() {
     console.log(`✅ Found ${response.data.length} agreements`);
     return response.data;
   } catch (error: any) {
-    console.error('❌ Get agreements failed:', error.response?.data || error.message);
+    console.error(
+      '❌ Get agreements failed:',
+      error.response?.data || error.message,
+    );
     return [];
   }
 }
@@ -101,16 +113,22 @@ async function getAgreementById() {
   }
 
   try {
-    const response = await axios.get(`${API_BASE}/agreements/${testAgreementId}`, {
-      headers: { Authorization: `Bearer ${authToken}` },
-    });
+    const response = await axios.get(
+      `${API_BASE}/agreements/${testAgreementId}`,
+      {
+        headers: { Authorization: `Bearer ${authToken}` },
+      },
+    );
     console.log('✅ Agreement retrieved successfully');
     console.log('Title:', response.data.title);
     console.log('Stage:', response.data.stage);
     console.log('Contract Value:', response.data.contractValue);
     return response.data;
   } catch (error: any) {
-    console.error('❌ Get agreement by ID failed:', error.response?.data || error.message);
+    console.error(
+      '❌ Get agreement by ID failed:',
+      error.response?.data || error.message,
+    );
     return null;
   }
 }
@@ -131,13 +149,16 @@ async function changeAgreementStage() {
       },
       {
         headers: { Authorization: `Bearer ${authToken}` },
-      }
+      },
     );
     console.log('✅ Stage changed successfully');
     console.log('New Stage:', response.data.stage);
     return response.data;
   } catch (error: any) {
-    console.error('❌ Change stage failed:', error.response?.data || error.message);
+    console.error(
+      '❌ Change stage failed:',
+      error.response?.data || error.message,
+    );
     return null;
   }
 }
@@ -150,16 +171,22 @@ async function getStageHistory() {
   }
 
   try {
-    const response = await axios.get(`${API_BASE}/agreements/${testAgreementId}/history`, {
-      headers: { Authorization: `Bearer ${authToken}` },
-    });
+    const response = await axios.get(
+      `${API_BASE}/agreements/${testAgreementId}/history`,
+      {
+        headers: { Authorization: `Bearer ${authToken}` },
+      },
+    );
     console.log(`✅ Found ${response.data.length} stage history records`);
     response.data.forEach((record: any, index: number) => {
       console.log(`  ${index + 1}. ${record.fromStage} → ${record.toStage}`);
     });
     return response.data;
   } catch (error: any) {
-    console.error('❌ Get stage history failed:', error.response?.data || error.message);
+    console.error(
+      '❌ Get stage history failed:',
+      error.response?.data || error.message,
+    );
     return null;
   }
 }
@@ -180,13 +207,16 @@ async function updateAgreement() {
       },
       {
         headers: { Authorization: `Bearer ${authToken}` },
-      }
+      },
     );
     console.log('✅ Agreement updated successfully');
     console.log('Description:', response.data.description);
     return response.data;
   } catch (error: any) {
-    console.error('❌ Update agreement failed:', error.response?.data || error.message);
+    console.error(
+      '❌ Update agreement failed:',
+      error.response?.data || error.message,
+    );
     return null;
   }
 }
@@ -203,11 +233,14 @@ async function testSigning() {
     await axios.put(
       `${API_BASE}/agreements/${testAgreementId}/change-stage`,
       { newStage: 'Pending Signature' },
-      { headers: { Authorization: `Bearer ${authToken}` } }
+      { headers: { Authorization: `Bearer ${authToken}` } },
     );
     console.log('✅ Moved to Pending Signature stage');
   } catch (error: any) {
-    console.log('⚠️ Could not move to signing stage:', error.response?.data?.message);
+    console.log(
+      '⚠️ Could not move to signing stage:',
+      error.response?.data?.message,
+    );
   }
 
   // Test client signing
@@ -219,11 +252,14 @@ async function testSigning() {
         signedDate: new Date().toISOString().split('T')[0],
         notes: 'Signed via test script',
       },
-      { headers: { Authorization: `Bearer ${authToken}` } }
+      { headers: { Authorization: `Bearer ${authToken}` } },
     );
     console.log('✅ Client signature recorded');
   } catch (error: any) {
-    console.error('❌ Client signing failed:', error.response?.data || error.message);
+    console.error(
+      '❌ Client signing failed:',
+      error.response?.data || error.message,
+    );
   }
 
   // Test company signing
@@ -235,12 +271,15 @@ async function testSigning() {
         signedDate: new Date().toISOString().split('T')[0],
         notes: 'Company signed via test script',
       },
-      { headers: { Authorization: `Bearer ${authToken}` } }
+      { headers: { Authorization: `Bearer ${authToken}` } },
     );
     console.log('✅ Company signature recorded');
     console.log('Agreement Stage:', response.data.stage);
   } catch (error: any) {
-    console.error('❌ Company signing failed:', error.response?.data || error.message);
+    console.error(
+      '❌ Company signing failed:',
+      error.response?.data || error.message,
+    );
   }
 }
 
@@ -277,7 +316,9 @@ async function runAllTests() {
   if (testAgreementId) {
     console.log('📝 Test Agreement Created:');
     console.log(`   ID: ${testAgreementId}`);
-    console.log(`   View in browser: http://localhost:5173/app/agreements/${testAgreementId}`);
+    console.log(
+      `   View in browser: http://localhost:5173/app/agreements/${testAgreementId}`,
+    );
   }
 }
 

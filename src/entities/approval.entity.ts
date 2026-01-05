@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { User } from './user.entity';
 import { Lead } from './lead.entity';
 
@@ -7,12 +15,14 @@ export enum ApprovalStatus {
   APPROVED = 'Approved',
   REJECTED = 'Rejected',
   SKIPPED = 'Skipped',
+  RETURNED = 'Returned',
 }
 
 export enum ApprovalStage {
   ACCOUNT_MANAGER = 'Account Manager',
   SALES_MANAGER = 'Sales Manager',
   FINANCE = 'Finance',
+  LEGAL = 'Legal',
   PROCUREMENT = 'Procurement',
   DELIVERY_MANAGER = 'Delivery Manager',
   CEO = 'CEO',
@@ -72,7 +82,11 @@ export class Approval {
   @Column('text', { nullable: true })
   comments: string;
 
-  @Column({ name: 'requested_date', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({
+    name: 'requested_date',
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+  })
   requestedDate: Date;
 
   @Column({ name: 'responded_date', type: 'timestamp', nullable: true })
@@ -83,6 +97,26 @@ export class Approval {
 
   @Column({ name: 'sequence_order' })
   sequenceOrder: number;
+
+  @Column({ type: 'boolean', default: false })
+  isCustomFlow: boolean;
+
+  @Column({ name: 'department_id', nullable: true })
+  departmentId: string;
+
+  @Column({ name: 'custom_approver_name', nullable: true })
+  customApproverName: string;
+
+  @Column({ name: 'created_by_user_id', nullable: true })
+  createdByUserId: string;
+
+  @Column({ type: 'jsonb', nullable: true })
+  attachments: Array<{
+    fileName: string;
+    filePath: string;
+    uploadedAt: Date;
+    uploadedBy: string;
+  }>;
 
   @CreateDateColumn({ name: 'created_date' })
   createdDate: Date;

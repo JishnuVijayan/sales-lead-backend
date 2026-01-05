@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { Lead } from './lead.entity';
 import { User } from './user.entity';
 
@@ -19,7 +26,7 @@ export class LeadActivity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Lead, lead => lead.activities, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Lead, (lead) => lead.activities, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'lead_id' })
   lead: Lead;
 
@@ -51,6 +58,13 @@ export class LeadActivity {
 
   @Column({ name: 'created_by', nullable: true })
   createdById: string;
+
+  @ManyToOne(() => User, { nullable: true, eager: true })
+  @JoinColumn({ name: 'assigned_to' })
+  assignedTo: User;
+
+  @Column({ name: 'assigned_to', nullable: true })
+  assignedToId: string;
 
   @CreateDateColumn({ name: 'created_date' })
   createdDate: Date;

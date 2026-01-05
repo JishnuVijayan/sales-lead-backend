@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  CreateDateColumn,
+} from 'typeorm';
 import { Agreement } from './agreement.entity';
 import { User } from './user.entity';
 
@@ -28,7 +35,9 @@ export class AgreementStageHistory {
   @Column({ name: 'agreement_id' })
   agreementId: string;
 
-  @ManyToOne(() => Agreement, (agreement) => agreement.stageHistory, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Agreement, (agreement) => agreement.stageHistory, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'agreement_id' })
   agreement: Agreement;
 

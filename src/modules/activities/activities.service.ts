@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { LeadActivity } from '../../entities';
 import { CreateActivityDto, UpdateActivityDto } from './dto/activity.dto';
 import { LeadsService } from '../leads/leads.service';
+import { ComprehensiveNotificationsService } from '../notifications/comprehensive-notifications.service';
 
 @Injectable()
 export class ActivitiesService {
@@ -11,21 +12,68 @@ export class ActivitiesService {
     @InjectRepository(LeadActivity)
     private activitiesRepository: Repository<LeadActivity>,
     private leadsService: LeadsService,
+    private notificationsService: ComprehensiveNotificationsService,
   ) {}
 
-  async create(createActivityDto: CreateActivityDto): Promise<LeadActivity> {
+  async create(
+    createActivityDto: CreateActivityDto,
+    userId: string,
+  ): Promise<LeadActivity> {
     const activity = this.activitiesRepository.create(createActivityDto);
     const savedActivity = await this.activitiesRepository.save(activity);
 
     // Update lead's last action date
     await this.leadsService.update(createActivityDto.leadId, {});
 
+    // Send notifications
+    const lead = await this.leadsService.findOne(createActivityDto.leadId);
+    const stakeholders = await this.notificationsService.getEntityStakeholders(
+      'Lead',
+      createActivityDto.leadId,
+    );
+
+    // Notify stakeholders about new activity (excluding the creator and assignee)
+    if (stakeholders.length > 0) {
+      const filteredStakeholders = stakeholders.filter(
+        (id) => id !== userId && id !== createActivityDto.assignedToId,
+      );
+      if (filteredStakeholders.length > 0) {
+        await this.notificationsService.notifyActivityAdded(
+          'Lead',
+          createActivityDto.leadId,
+          savedActivity.type,
+          userId,
+          filteredStakeholders,
+        );
+      }
+    }
+
+    // Notify assigned user if activity is assigned
+    if (createActivityDto.assignedToId) {
+      await this.notificationsService.notifyActivityAssigned(
+        savedActivity.id,
+        savedActivity.title,
+        savedActivity.type,
+        createActivityDto.assignedToId,
+        userId,
+        'Lead',
+        createActivityDto.leadId,
+        lead.name || 'Unknown Lead',
+        savedActivity.scheduledDate,
+      );
+    }
+
     return savedActivity;
   }
 
-  async findAll(): Promise<{ data: LeadActivity[]; total: number; page: number; limit: number }> {
+  async findAll(): Promise<{
+    data: LeadActivity[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
     const [activities, total] = await this.activitiesRepository.findAndCount({
-      relations: ['lead', 'createdBy'],
+      relations: ['lead', 'createdBy', 'assignedTo'],
       order: { createdDate: 'DESC' },
     });
 
@@ -40,7 +88,7 @@ export class ActivitiesService {
   async findByLead(leadId: string): Promise<LeadActivity[]> {
     return await this.activitiesRepository.find({
       where: { leadId },
-      relations: ['createdBy'],
+      relations: ['createdBy', 'assignedTo'],
       order: { createdDate: 'DESC' },
     });
   }
@@ -58,10 +106,16 @@ export class ActivitiesService {
     return activity;
   }
 
-  async update(id: string, updateActivityDto: UpdateActivityDto): Promise<LeadActivity> {
+  async update(
+    id: string,
+    updateActivityDto: UpdateActivityDto,
+  ): Promise<LeadActivity> {
     const activity = await this.findOne(id);
 
-    const updatedActivity = this.activitiesRepository.merge(activity, updateActivityDto);
+    const updatedActivity = this.activitiesRepository.merge(
+      activity,
+      updateActivityDto,
+    );
     const savedActivity = await this.activitiesRepository.save(updatedActivity);
 
     // Update lead's last action date

@@ -1,7 +1,16 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { WorkOrder, AgreementType, PaymentTerms } from '../../entities';
+import {
+  WorkOrder,
+  AgreementType,
+  PaymentTerms,
+  LeadStatus,
+} from '../../entities';
 import { CreateWorkOrderDto, UpdateWorkOrderDto } from './dto/work-order.dto';
 import { LeadsService } from '../leads/leads.service';
 import { AgreementsService } from '../agreements/agreements.service';
@@ -18,15 +27,6 @@ export class WorkOrdersService {
   ) {}
 
   async create(createWorkOrderDto: CreateWorkOrderDto): Promise<WorkOrder> {
-    // Check if a work order already exists for this lead
-    const existingWorkOrder = await this.workOrdersRepository.findOne({
-      where: { leadId: createWorkOrderDto.leadId },
-    });
-
-    if (existingWorkOrder) {
-      throw new Error('A work order already exists for this lead');
-    }
-
     // Generate work order number
     const count = await this.workOrdersRepository.count();
     const workOrderNumber = `WO-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
@@ -38,51 +38,66 @@ export class WorkOrdersService {
 
     const savedWorkOrder = await this.workOrdersRepository.save(workOrder);
 
-    // Mark lead as converted
-    await this.leadsService.convertToWon(createWorkOrderDto.leadId);
-    
-    // Send lead won notification
-    try {
-      const lead = await this.leadsService.findOne(createWorkOrderDto.leadId);
-      await this.notificationsService.notifyLeadWon(
-        createWorkOrderDto.leadId,
-        lead.organization || lead.name,
-        savedWorkOrder.id,
-      );
-    } catch (error) {
-      console.error('Failed to send notification:', error);
+    // Mark lead as won if not already won
+    const lead = await this.leadsService.findOne(createWorkOrderDto.leadId);
+    if (lead.status !== LeadStatus.WON) {
+      await this.leadsService.convertToWon(createWorkOrderDto.leadId);
+
+      // Send lead won notification only for first work order
+      try {
+        await this.notificationsService.notifyLeadWon(
+          createWorkOrderDto.leadId,
+          lead.organization || lead.name,
+          savedWorkOrder.id,
+        );
+      } catch (error) {
+        console.error('Failed to send notification:', error);
+      }
     }
 
     // Phase 2: Auto-create Agreement when Work Order is created
     if (createWorkOrderDto.createdById) {
-      await this.createAgreementFromWorkOrder(savedWorkOrder, createWorkOrderDto.createdById);
+      await this.createAgreementFromWorkOrder(
+        savedWorkOrder,
+        createWorkOrderDto.createdById,
+      );
     }
 
     return this.findOne(savedWorkOrder.id);
   }
 
   // Phase 2: Auto-create Agreement
-  private async createAgreementFromWorkOrder(workOrder: WorkOrder, userId: string): Promise<void> {
+  private async createAgreementFromWorkOrder(
+    workOrder: WorkOrder,
+    userId: string,
+  ): Promise<void> {
     try {
-      await this.agreementsService.create({
-        leadId: workOrder.leadId,
-        title: `Agreement for ${workOrder.title}`,
-        description: workOrder.description,
-        agreementType: AgreementType.CONTRACT,
-        contractValue: workOrder.orderValue,
-        paymentTerms: PaymentTerms.NET_30,
-        scopeOfWork: workOrder.description,
-        assignedToId: workOrder.assignedToOperationsId,
-      }, userId);
+      await this.agreementsService.create(
+        {
+          leadId: workOrder.leadId,
+          title: `Agreement for ${workOrder.title}`,
+          description: workOrder.description,
+          agreementType: AgreementType.CONTRACT,
+          contractValue: workOrder.orderValue,
+          paymentTerms: PaymentTerms.NET_30,
+          scopeOfWork: workOrder.description,
+        },
+        userId,
+      );
     } catch (error) {
       // Log error but don't fail work order creation
       console.error('Failed to auto-create agreement:', error);
     }
   }
 
-  async findAll(): Promise<{ data: WorkOrder[]; total: number; page: number; limit: number }> {
+  async findAll(): Promise<{
+    data: WorkOrder[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
     const [workOrders, total] = await this.workOrdersRepository.findAndCount({
-      relations: ['lead', 'assignedToOperations', 'assignedToAccounts', 'createdBy'],
+      relations: ['lead', 'createdBy'],
       order: { createdDate: 'DESC' },
     });
 
@@ -94,10 +109,15 @@ export class WorkOrdersService {
     };
   }
 
-  async findByLead(leadId: string): Promise<{ data: WorkOrder[]; total: number; page: number; limit: number }> {
+  async findByLead(leadId: string): Promise<{
+    data: WorkOrder[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
     const [workOrders, total] = await this.workOrdersRepository.findAndCount({
       where: { leadId },
-      relations: ['assignedToOperations', 'assignedToAccounts', 'createdBy'],
+      relations: ['createdBy'],
       order: { createdDate: 'DESC' },
     });
 
@@ -112,7 +132,7 @@ export class WorkOrdersService {
   async findOne(id: string): Promise<WorkOrder> {
     const workOrder = await this.workOrdersRepository.findOne({
       where: { id },
-      relations: ['lead', 'assignedToOperations', 'assignedToAccounts', 'createdBy'],
+      relations: ['lead', 'createdBy'],
     });
 
     if (!workOrder) {
@@ -122,10 +142,16 @@ export class WorkOrdersService {
     return workOrder;
   }
 
-  async update(id: string, updateWorkOrderDto: UpdateWorkOrderDto): Promise<WorkOrder> {
+  async update(
+    id: string,
+    updateWorkOrderDto: UpdateWorkOrderDto,
+  ): Promise<WorkOrder> {
     const workOrder = await this.findOne(id);
 
-    const updatedWorkOrder = this.workOrdersRepository.merge(workOrder, updateWorkOrderDto);
+    const updatedWorkOrder = this.workOrdersRepository.merge(
+      workOrder,
+      updateWorkOrderDto,
+    );
     await this.workOrdersRepository.save(updatedWorkOrder);
 
     return this.findOne(id);

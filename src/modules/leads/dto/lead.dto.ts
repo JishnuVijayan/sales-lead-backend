@@ -1,4 +1,12 @@
-import { IsString, IsEmail, IsEnum, IsOptional, IsNumber, IsBoolean, IsUUID } from 'class-validator';
+import {
+  IsString,
+  IsEmail,
+  IsEnum,
+  IsOptional,
+  IsNumber,
+  IsBoolean,
+  IsUUID,
+} from 'class-validator';
 import { Transform } from 'class-transformer';
 import { LeadSource, LeadStatus } from '../../../entities';
 
@@ -66,6 +74,10 @@ export class CreateLeadDto {
   @IsUUID()
   @IsOptional()
   assignedToId?: string;
+
+  @IsUUID()
+  @IsOptional()
+  claimedById?: string;
 
   @IsString()
   @IsOptional()
@@ -172,6 +184,10 @@ export class UpdateLeadDto {
   @IsUUID()
   @IsOptional()
   assignedToId?: string;
+
+  @IsUUID()
+  @IsOptional()
+  claimedById?: string;
 
   @IsString()
   @IsOptional()
@@ -321,6 +337,10 @@ export class FilterLeadsDto {
   @IsUUID()
   @IsOptional()
   assignedToId?: string;
+
+  @IsUUID()
+  @IsOptional()
+  claimedById?: string;
 
   @IsNumber()
   @IsOptional()

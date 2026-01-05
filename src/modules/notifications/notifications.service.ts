@@ -1,8 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Notification, NotificationType, NotificationStatus } from '../../entities/notification.entity';
+import {
+  Notification,
+  NotificationType,
+  NotificationStatus,
+} from '../../entities/notification.entity';
 import { User } from '../../entities/user.entity';
+import { SseNotificationsService } from './sse-notifications.service';
 import * as nodemailer from 'nodemailer';
 
 @Injectable()
@@ -15,6 +20,7 @@ export class NotificationsService {
     private notificationsRepository: Repository<Notification>,
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    private sseNotificationsService: SseNotificationsService,
   ) {
     // Configure email transporter (update with your SMTP settings)
     this.transporter = nodemailer.createTransport({
@@ -48,19 +54,55 @@ export class NotificationsService {
     });
 
     const saved = await this.notificationsRepository.save(notification);
-    
+
+    // Push notification via SSE to user if they're connected
+    this.pushNotificationViaSSE(saved);
+
     // Send email only if explicitly requested
     if (sendEmail && process.env.SMTP_USER) {
-      this.sendEmail(saved.id).catch(err => 
-        this.logger.error(`Failed to send notification ${saved.id}: ${err.message}`)
+      this.sendEmail(saved.id).catch((err) =>
+        this.logger.error(
+          `Failed to send notification ${saved.id}: ${err.message}`,
+        ),
       );
-    } else {
-      // Mark as "sent" for in-app notifications (no email needed)
-      saved.status = NotificationStatus.SENT;
-      await this.notificationsRepository.save(saved);
     }
+    // Note: In-app notifications remain in PENDING status until user marks as read
 
     return saved;
+  }
+
+  /**
+   * Push notification to user via SSE if they're connected
+   */
+  private pushNotificationViaSSE(notification: Notification): void {
+    try {
+      const pushed = this.sseNotificationsService.pushToUser(
+        notification.recipientId,
+        {
+          id: notification.id,
+          type: notification.type,
+          subject: notification.subject,
+          message: notification.message,
+          entityType: notification.entityType,
+          entityId: notification.entityId,
+          createdDate: notification.createdDate,
+        },
+      );
+
+      if (pushed) {
+        this.logger.log(
+          `Pushed notification ${notification.id} via SSE to user ${notification.recipientId}`,
+        );
+      } else {
+        this.logger.debug(
+          `User ${notification.recipientId} not connected, notification will be fetched on login`,
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to push notification via SSE: ${error.message}`,
+      );
+    }
   }
 
   async sendEmail(notificationId: string): Promise<void> {
@@ -92,7 +134,9 @@ export class NotificationsService {
       notification.sentDate = new Date();
       await this.notificationsRepository.save(notification);
 
-      this.logger.log(`Email sent successfully to ${notification.recipient.email}`);
+      this.logger.log(
+        `Email sent successfully to ${notification.recipient.email}`,
+      );
     } catch (error) {
       notification.status = NotificationStatus.FAILED;
       notification.errorMessage = error.message;
@@ -133,7 +177,11 @@ export class NotificationsService {
   }
 
   // Notification triggers
-  async notifyLeadIdle(leadId: string, assignedToId: string, daysSinceLastAction: number): Promise<void> {
+  async notifyLeadIdle(
+    leadId: string,
+    assignedToId: string,
+    daysSinceLastAction: number,
+  ): Promise<void> {
     await this.createNotification(
       assignedToId,
       NotificationType.LEAD_IDLE,
@@ -146,7 +194,12 @@ export class NotificationsService {
     );
   }
 
-  async notifyLeadEscalation(leadId: string, managerId: string, assignedToName: string, daysSinceLastAction: number): Promise<void> {
+  async notifyLeadEscalation(
+    leadId: string,
+    managerId: string,
+    assignedToName: string,
+    daysSinceLastAction: number,
+  ): Promise<void> {
     await this.createNotification(
       managerId,
       NotificationType.LEAD_ESCALATION,
@@ -159,7 +212,12 @@ export class NotificationsService {
     );
   }
 
-  async notifyAgreementStageDelay(agreementId: string, userId: string, stage: string, daysInStage: number): Promise<void> {
+  async notifyAgreementStageDelay(
+    agreementId: string,
+    userId: string,
+    stage: string,
+    daysInStage: number,
+  ): Promise<void> {
     await this.createNotification(
       userId,
       NotificationType.AGREEMENT_STAGE_DELAY,
@@ -172,7 +230,10 @@ export class NotificationsService {
     );
   }
 
-  async notifyCEOApprovalPending(agreementId: string, ceoId: string): Promise<void> {
+  async notifyCEOApprovalPending(
+    agreementId: string,
+    ceoId: string,
+  ): Promise<void> {
     await this.createNotification(
       ceoId,
       NotificationType.CEO_APPROVAL_PENDING,
@@ -185,7 +246,11 @@ export class NotificationsService {
     );
   }
 
-  async notifyClientReviewReminder(agreementId: string, accountManagerId: string, daysInReview: number): Promise<void> {
+  async notifyClientReviewReminder(
+    agreementId: string,
+    accountManagerId: string,
+    daysInReview: number,
+  ): Promise<void> {
     await this.createNotification(
       accountManagerId,
       NotificationType.CLIENT_REVIEW_REMINDER,
@@ -198,7 +263,12 @@ export class NotificationsService {
     );
   }
 
-  async notifySLAWarning(entityType: string, entityId: string, userId: string, stage: string): Promise<void> {
+  async notifySLAWarning(
+    entityType: string,
+    entityId: string,
+    userId: string,
+    stage: string,
+  ): Promise<void> {
     await this.createNotification(
       userId,
       NotificationType.SLA_WARNING,
@@ -211,7 +281,12 @@ export class NotificationsService {
     );
   }
 
-  async notifySLACritical(entityType: string, entityId: string, userId: string, stage: string): Promise<void> {
+  async notifySLACritical(
+    entityType: string,
+    entityId: string,
+    userId: string,
+    stage: string,
+  ): Promise<void> {
     await this.createNotification(
       userId,
       NotificationType.SLA_CRITICAL,
@@ -224,23 +299,33 @@ export class NotificationsService {
     );
   }
 
-  async findAll(filters?: { recipientId?: string; status?: NotificationStatus }): Promise<Notification[]> {
-    const query = this.notificationsRepository.createQueryBuilder('notification')
+  async findAll(filters?: {
+    recipientId?: string;
+    status?: NotificationStatus;
+  }): Promise<Notification[]> {
+    const query = this.notificationsRepository
+      .createQueryBuilder('notification')
       .leftJoinAndSelect('notification.recipient', 'recipient')
       .orderBy('notification.createdDate', 'DESC');
 
     if (filters?.recipientId) {
-      query.andWhere('notification.recipientId = :recipientId', { recipientId: filters.recipientId });
+      query.andWhere('notification.recipientId = :recipientId', {
+        recipientId: filters.recipientId,
+      });
     }
 
     if (filters?.status) {
-      query.andWhere('notification.status = :status', { status: filters.status });
+      query.andWhere('notification.status = :status', {
+        status: filters.status,
+      });
     }
 
     return query.getMany();
   }
 
   async markAsRead(id: string): Promise<void> {
-    await this.notificationsRepository.update(id, { status: NotificationStatus.SENT });
+    await this.notificationsRepository.update(id, {
+      status: NotificationStatus.SENT,
+    });
   }
 }

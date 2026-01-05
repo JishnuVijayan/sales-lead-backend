@@ -1,8 +1,21 @@
-import { Injectable, NotFoundException, BadRequestException, Inject, forwardRef } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Negotiation, NegotiationStatus, NegotiationOutcome } from '../../entities';
-import { CreateNegotiationDto, UpdateNegotiationDto } from './dto/negotiation.dto';
+import {
+  Negotiation,
+  NegotiationStatus,
+  NegotiationOutcome,
+} from '../../entities';
+import {
+  CreateNegotiationDto,
+  UpdateNegotiationDto,
+} from './dto/negotiation.dto';
 import { ApprovalsService } from '../approvals/approvals.service';
 import { ApprovalContext, ApprovalStage } from '../../entities/approval.entity';
 import { UserRole } from '../../entities/user.entity';
@@ -16,7 +29,9 @@ export class NegotiationsService {
     private approvalsService: ApprovalsService,
   ) {}
 
-  async create(createNegotiationDto: CreateNegotiationDto): Promise<Negotiation> {
+  async create(
+    createNegotiationDto: CreateNegotiationDto,
+  ): Promise<Negotiation> {
     const negotiation = this.negotiationsRepository.create({
       ...createNegotiationDto,
       status: NegotiationStatus.ACTIVE,
@@ -29,7 +44,8 @@ export class NegotiationsService {
   }
 
   async findAll(leadId?: string): Promise<Negotiation[]> {
-    const query = this.negotiationsRepository.createQueryBuilder('negotiation')
+    const query = this.negotiationsRepository
+      .createQueryBuilder('negotiation')
       .leftJoinAndSelect('negotiation.lead', 'lead')
       .leftJoinAndSelect('negotiation.negotiator', 'negotiator')
       .orderBy('negotiation.createdDate', 'DESC');
@@ -54,12 +70,20 @@ export class NegotiationsService {
     return negotiation;
   }
 
-  async update(id: string, updateNegotiationDto: UpdateNegotiationDto): Promise<Negotiation> {
+  async update(
+    id: string,
+    updateNegotiationDto: UpdateNegotiationDto,
+  ): Promise<Negotiation> {
     const negotiation = await this.findOne(id);
 
     // If status is being updated to completed, set actual closure date
-    if (updateNegotiationDto.status === NegotiationStatus.COMPLETED && !negotiation.actualClosureDate) {
-      updateNegotiationDto.actualClosureDate = new Date().toISOString().split('T')[0];
+    if (
+      updateNegotiationDto.status === NegotiationStatus.COMPLETED &&
+      !negotiation.actualClosureDate
+    ) {
+      updateNegotiationDto.actualClosureDate = new Date()
+        .toISOString()
+        .split('T')[0];
     }
 
     Object.assign(negotiation, updateNegotiationDto);
@@ -71,7 +95,11 @@ export class NegotiationsService {
     await this.negotiationsRepository.remove(negotiation);
   }
 
-  async completeNegotiation(id: string, outcome: NegotiationOutcome, finalAmount?: number): Promise<Negotiation> {
+  async completeNegotiation(
+    id: string,
+    outcome: NegotiationOutcome,
+    finalAmount?: number,
+  ): Promise<Negotiation> {
     const negotiation = await this.findOne(id);
 
     return await this.update(id, {
@@ -94,13 +122,19 @@ export class NegotiationsService {
 
     const stats = {
       totalNegotiations: negotiations.length,
-      activeNegotiations: negotiations.filter(n => n.status === NegotiationStatus.ACTIVE).length,
-      completedNegotiations: negotiations.filter(n => n.status === NegotiationStatus.COMPLETED).length,
+      activeNegotiations: negotiations.filter(
+        (n) => n.status === NegotiationStatus.ACTIVE,
+      ).length,
+      completedNegotiations: negotiations.filter(
+        (n) => n.status === NegotiationStatus.COMPLETED,
+      ).length,
       totalCalls: negotiations.reduce((sum, n) => sum + n.callCount, 0),
       totalMeetings: negotiations.reduce((sum, n) => sum + n.meetingCount, 0),
-      averageExpectedAmount: negotiations.length > 0
-        ? negotiations.reduce((sum, n) => sum + n.expectedAmount, 0) / negotiations.length
-        : 0,
+      averageExpectedAmount:
+        negotiations.length > 0
+          ? negotiations.reduce((sum, n) => sum + n.expectedAmount, 0) /
+            negotiations.length
+          : 0,
     };
 
     return stats;
@@ -111,7 +145,7 @@ export class NegotiationsService {
     id: string,
     userId: string,
     revisionReason: string,
-    changes: Partial<UpdateNegotiationDto>
+    changes: Partial<UpdateNegotiationDto>,
   ): Promise<Negotiation> {
     const negotiation = await this.findOne(id);
 
@@ -120,7 +154,10 @@ export class NegotiationsService {
     }
 
     // Check if significant changes require approval (amount change > 10% or discount change)
-    const requiresApproval = this.checkIfRevisionRequiresApproval(negotiation, changes);
+    const requiresApproval = this.checkIfRevisionRequiresApproval(
+      negotiation,
+      changes,
+    );
 
     // Increment revision number
     const revisionNumber = negotiation.revisionNumber + 1;
@@ -145,7 +182,12 @@ export class NegotiationsService {
         entityId: negotiation.id,
         leadId: negotiation.leadId,
         stages: [
-          { stage: ApprovalStage.SALES_MANAGER, approverRole: UserRole.SALES_MANAGER, isMandatory: true, sequenceOrder: 1 },
+          {
+            stage: ApprovalStage.SALES_MANAGER,
+            approverRole: UserRole.SALES_MANAGER,
+            isMandatory: true,
+            sequenceOrder: 1,
+          },
         ],
       });
     }
@@ -155,34 +197,49 @@ export class NegotiationsService {
 
   private checkIfRevisionRequiresApproval(
     negotiation: Negotiation,
-    changes: Partial<UpdateNegotiationDto>
+    changes: Partial<UpdateNegotiationDto>,
   ): boolean {
     // Require approval if amount changes by more than 10%
     if (changes.expectedAmount) {
       const percentChange = Math.abs(
-        ((changes.expectedAmount - negotiation.expectedAmount) / negotiation.expectedAmount) * 100
+        ((changes.expectedAmount - negotiation.expectedAmount) /
+          negotiation.expectedAmount) *
+          100,
       );
       if (percentChange > 10) return true;
     }
 
     // Require approval if discount changes
-    if (changes.discountOffered !== undefined && changes.discountOffered !== negotiation.discountOffered) {
+    if (
+      changes.discountOffered !== undefined &&
+      changes.discountOffered !== negotiation.discountOffered
+    ) {
       return true;
     }
 
     // Require approval if special terms are added/modified
-    if (changes.specialTerms && changes.specialTerms !== negotiation.specialTerms) {
+    if (
+      changes.specialTerms &&
+      changes.specialTerms !== negotiation.specialTerms
+    ) {
       return true;
     }
 
     return false;
   }
 
-  async approveRevision(id: string, userId: string, approved: boolean, notes?: string): Promise<Negotiation> {
+  async approveRevision(
+    id: string,
+    userId: string,
+    approved: boolean,
+    notes?: string,
+  ): Promise<Negotiation> {
     const negotiation = await this.findOne(id);
 
     if (!negotiation.requiresApproval) {
-      throw new BadRequestException('This negotiation revision does not require approval');
+      throw new BadRequestException(
+        'This negotiation revision does not require approval',
+      );
     }
 
     if (negotiation.revisionStatus !== 'Pending') {
@@ -204,7 +261,7 @@ export class NegotiationsService {
 
   async getRevisionHistory(id: string): Promise<any> {
     const negotiation = await this.findOne(id);
-    
+
     return {
       negotiationId: negotiation.id,
       currentRevision: negotiation.revisionNumber,

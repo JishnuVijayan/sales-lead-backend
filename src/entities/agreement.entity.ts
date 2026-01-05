@@ -1,7 +1,18 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  OneToMany,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 import { Lead } from './lead.entity';
 import { User } from './user.entity';
 import { AgreementStageHistory } from './agreement-stage-history.entity';
+import { AgreementApprovalConfig } from './agreement-approval-config.entity';
+import { AgreementDelay } from './agreement-delay.entity';
 
 export enum AgreementStage {
   DRAFT = 'Draft',
@@ -88,6 +99,18 @@ export class Agreement {
     default: AgreementStage.DRAFT,
   })
   stage: AgreementStage;
+
+  @Column({ name: 'has_custom_approval_flow', default: false })
+  hasCustomApprovalFlow: boolean;
+
+  @Column({ name: 'approval_in_progress', default: false })
+  approvalInProgress: boolean;
+
+  @OneToMany(() => AgreementApprovalConfig, (config) => config.agreement)
+  approvalConfigs: AgreementApprovalConfig[];
+
+  @OneToMany('AgreementActivity', 'agreement')
+  activities: any[];
 
   @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })
   contractValue: number;
@@ -332,4 +355,7 @@ export class Agreement {
 
   @OneToMany(() => AgreementStageHistory, (history) => history.agreement)
   stageHistory: AgreementStageHistory[];
+
+  @OneToMany(() => AgreementDelay, (delay) => delay.agreement)
+  delays: AgreementDelay[];
 }

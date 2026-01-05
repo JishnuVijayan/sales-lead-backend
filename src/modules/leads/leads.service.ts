@@ -1,10 +1,22 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like, Between, MoreThan, LessThan } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { Lead, LeadStatus, LeadAgingStatus } from '../../entities';
-import { CreateLeadDto, UpdateLeadDto, QualifyLeadDto, FilterLeadsDto } from './dto/lead.dto';
-import { RequestQualificationDto, ApproveQualificationDto } from './dto/lead.dto';
+import {
+  CreateLeadDto,
+  UpdateLeadDto,
+  QualifyLeadDto,
+  FilterLeadsDto,
+} from './dto/lead.dto';
+import {
+  RequestQualificationDto,
+  ApproveQualificationDto,
+} from './dto/lead.dto';
 import { ComprehensiveNotificationsService } from '../notifications/comprehensive-notifications.service';
 
 @Injectable()
@@ -23,10 +35,11 @@ export class LeadsService {
       isActive: true,
       lastActionDate: new Date(),
       createdById: userId,
+      assignedToId: userId, // Auto-assign to creator (account manager)
     });
 
     const savedLead = await this.leadsRepository.save(lead);
-    
+
     // Send in-app notification
     try {
       await this.notificationsService.notifyLeadCreated(savedLead.id, userId);
@@ -38,10 +51,22 @@ export class LeadsService {
     return savedLead;
   }
 
-  async findAll(filterDto: FilterLeadsDto): Promise<{ data: Lead[]; total: number; page: number; limit: number }> {
-    const { status, source, assignedToId, minAge, maxAge, search, page = 1, limit = 10 } = filterDto;
+  async findAll(
+    filterDto: FilterLeadsDto,
+  ): Promise<{ data: Lead[]; total: number; page: number; limit: number }> {
+    const {
+      status,
+      source,
+      assignedToId,
+      minAge,
+      maxAge,
+      search,
+      page = 1,
+      limit = 10,
+    } = filterDto;
 
-    const query = this.leadsRepository.createQueryBuilder('lead')
+    const query = this.leadsRepository
+      .createQueryBuilder('lead')
       .leftJoinAndSelect('lead.assignedTo', 'assignedTo')
       .leftJoinAndSelect('lead.createdBy', 'createdBy')
       .orderBy('lead.createdDate', 'DESC');
@@ -61,7 +86,7 @@ export class LeadsService {
     if (search) {
       query.andWhere(
         '(lead.name ILIKE :search OR lead.organization ILIKE :search OR lead.email ILIKE :search OR lead.phone ILIKE :search)',
-        { search: `%${search}%` }
+        { search: `%${search}%` },
       );
     }
 
@@ -71,12 +96,12 @@ export class LeadsService {
       .getManyAndCount();
 
     // Calculate aging for each lead
-    const data = results.map(lead => this.calculateLeadAging(lead));
+    const data = results.map((lead) => this.calculateLeadAging(lead));
 
     // Filter by age range if specified
     let filteredData = data;
     if (minAge !== undefined || maxAge !== undefined) {
-      filteredData = data.filter(lead => {
+      filteredData = data.filter((lead) => {
         const age = lead.leadAge || 0;
         if (minAge !== undefined && age < minAge) return false;
         if (maxAge !== undefined && age > maxAge) return false;
@@ -95,7 +120,14 @@ export class LeadsService {
   async findOne(id: string): Promise<Lead> {
     const lead = await this.leadsRepository.findOne({
       where: { id },
-      relations: ['assignedTo', 'createdBy', 'activities', 'proposals', 'documents', 'workOrders'],
+      relations: [
+        'assignedTo',
+        'createdBy',
+        'activities',
+        'proposals',
+        'documents',
+        'workOrders',
+      ],
     });
 
     if (!lead) {
@@ -117,7 +149,11 @@ export class LeadsService {
     return await this.leadsRepository.save(updatedLead);
   }
 
-  async qualify(id: string, qualifyDto: QualifyLeadDto, userId?: string): Promise<Lead> {
+  async qualify(
+    id: string,
+    qualifyDto: QualifyLeadDto,
+    userId?: string,
+  ): Promise<Lead> {
     const lead = await this.findOne(id);
 
     const updatedLead = this.leadsRepository.merge(lead, {
@@ -128,10 +164,13 @@ export class LeadsService {
     });
 
     const savedLead = await this.leadsRepository.save(updatedLead);
-    
+
     // Send in-app notification
     try {
-      await this.notificationsService.notifyLeadQualified(savedLead.id, userId || savedLead.createdById);
+      await this.notificationsService.notifyLeadQualified(
+        savedLead.id,
+        userId || savedLead.createdById,
+      );
     } catch (error) {
       console.error('Failed to send notification:', error);
     }
@@ -150,7 +189,7 @@ export class LeadsService {
     lead.lastActionDate = new Date();
 
     const savedLead = await this.leadsRepository.save(lead);
-    
+
     // Note: notifyLeadWon will be called from work-orders service
     // when work order is created with the workOrderId
 
@@ -165,7 +204,8 @@ export class LeadsService {
     lead.lostDate = new Date();
     lead.lastActionDate = new Date();
     if (reason) {
-      lead.internalNotes = (lead.internalNotes || '') + `\n\nLost Reason: ${reason}`;
+      lead.internalNotes =
+        (lead.internalNotes || '') + `\n\nLost Reason: ${reason}`;
     }
 
     return await this.leadsRepository.save(lead);
@@ -205,7 +245,12 @@ export class LeadsService {
   async claim(id: string, userId: string): Promise<Lead> {
     const lead = await this.findOne(id);
 
-    lead.assignedToId = userId;
+    // Only allow claiming if not already claimed and user has SALES_MANAGER role
+    if (lead.claimedById) {
+      throw new BadRequestException('Lead is already claimed');
+    }
+
+    lead.claimedById = userId;
     lead.lastActionDate = new Date();
 
     return await this.leadsRepository.save(lead);
@@ -223,27 +268,36 @@ export class LeadsService {
       where: { isActive: true },
     });
 
-    const leadsWithAging = allLeads.map(lead => this.calculateLeadAging(lead));
+    const leadsWithAging = allLeads.map((lead) =>
+      this.calculateLeadAging(lead),
+    );
 
     const overdueCount = leadsWithAging.filter(
-      lead => lead.agingStatus === LeadAgingStatus.OVERDUE
+      (lead) => lead.agingStatus === LeadAgingStatus.OVERDUE,
     ).length;
 
     const needsAttentionCount = leadsWithAging.filter(
-      lead => lead.agingStatus === LeadAgingStatus.NEEDS_ATTENTION
+      (lead) => lead.agingStatus === LeadAgingStatus.NEEDS_ATTENTION,
     ).length;
 
-    const totalAge = leadsWithAging.reduce((sum, lead) => sum + (lead.leadAge || 0), 0);
-    const averageAge = leadsWithAging.length > 0 ? totalAge / leadsWithAging.length : 0;
+    const totalAge = leadsWithAging.reduce(
+      (sum, lead) => sum + (lead.leadAge || 0),
+      0,
+    );
+    const averageAge =
+      leadsWithAging.length > 0 ? totalAge / leadsWithAging.length : 0;
 
-    const byStatus = allLeads.reduce((acc, lead) => {
-      acc[lead.status] = (acc[lead.status] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const byStatus = allLeads.reduce(
+      (acc, lead) => {
+        acc[lead.status] = (acc[lead.status] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
     return {
       totalLeads: allLeads.length,
-      activeLeads: leadsWithAging.filter(l => l.isActive).length,
+      activeLeads: leadsWithAging.filter((l) => l.isActive).length,
       averageAge: Math.round(averageAge * 10) / 10,
       overdueCount,
       needsAttentionCount,
@@ -253,17 +307,19 @@ export class LeadsService {
 
   async getOverdueLeads(): Promise<Lead[]> {
     const allLeads = await this.leadsRepository.find({
-      where: { 
+      where: {
         isActive: true,
         isConverted: false,
       },
       relations: ['assignedTo'],
     });
 
-    const leadsWithAging = allLeads.map(lead => this.calculateLeadAging(lead));
+    const leadsWithAging = allLeads.map((lead) =>
+      this.calculateLeadAging(lead),
+    );
 
     return leadsWithAging.filter(
-      lead => lead.agingStatus === LeadAgingStatus.OVERDUE
+      (lead) => lead.agingStatus === LeadAgingStatus.OVERDUE,
     );
   }
 
@@ -273,45 +329,105 @@ export class LeadsService {
     const lastActionDate = new Date(lead.lastActionDate);
 
     // Calculate lead age in days from creation
-    const leadAge = Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
+    const leadAge = Math.floor(
+      (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24),
+    );
 
     // Calculate days since last action
-    const daysSinceLastAction = Math.floor((now.getTime() - lastActionDate.getTime()) / (1000 * 60 * 60 * 24));
+    const daysSinceLastAction = Math.floor(
+      (now.getTime() - lastActionDate.getTime()) / (1000 * 60 * 60 * 24),
+    );
 
     // Calculate stage-wise aging
     const stageAging = {
       new: lead.qualifiedDate
-        ? Math.floor((new Date(lead.qualifiedDate).getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24))
+        ? Math.floor(
+            (new Date(lead.qualifiedDate).getTime() - createdDate.getTime()) /
+              (1000 * 60 * 60 * 24),
+          )
         : leadAge, // If not qualified yet, all time is in New stage
-      qualified: lead.proposalDate && lead.qualifiedDate
-        ? Math.floor((new Date(lead.proposalDate).getTime() - new Date(lead.qualifiedDate).getTime()) / (1000 * 60 * 60 * 24))
-        : lead.qualifiedDate && !lead.proposalDate
-        ? Math.floor((now.getTime() - new Date(lead.qualifiedDate).getTime()) / (1000 * 60 * 60 * 24))
+      qualified:
+        lead.proposalDate && lead.qualifiedDate
+          ? Math.floor(
+              (new Date(lead.proposalDate).getTime() -
+                new Date(lead.qualifiedDate).getTime()) /
+                (1000 * 60 * 60 * 24),
+            )
+          : lead.qualifiedDate && !lead.proposalDate
+            ? Math.floor(
+                (now.getTime() - new Date(lead.qualifiedDate).getTime()) /
+                  (1000 * 60 * 60 * 24),
+              )
+            : 0,
+      proposal:
+        lead.negotiationDate && lead.proposalDate
+          ? Math.floor(
+              (new Date(lead.negotiationDate).getTime() -
+                new Date(lead.proposalDate).getTime()) /
+                (1000 * 60 * 60 * 24),
+            )
+          : lead.proposalDate && !lead.negotiationDate
+            ? Math.floor(
+                (now.getTime() - new Date(lead.proposalDate).getTime()) /
+                  (1000 * 60 * 60 * 24),
+              )
+            : 0,
+      negotiation:
+        lead.wonDate && lead.negotiationDate
+          ? Math.floor(
+              (new Date(lead.wonDate).getTime() -
+                new Date(lead.negotiationDate).getTime()) /
+                (1000 * 60 * 60 * 24),
+            )
+          : lead.lostDate && lead.negotiationDate
+            ? Math.floor(
+                (new Date(lead.lostDate).getTime() -
+                  new Date(lead.negotiationDate).getTime()) /
+                  (1000 * 60 * 60 * 24),
+              )
+            : lead.negotiationDate
+              ? Math.floor(
+                  (now.getTime() - new Date(lead.negotiationDate).getTime()) /
+                    (1000 * 60 * 60 * 24),
+                )
+              : 0,
+      won: lead.wonDate
+        ? Math.floor(
+            (now.getTime() - new Date(lead.wonDate).getTime()) /
+              (1000 * 60 * 60 * 24),
+          )
         : 0,
-      proposal: lead.negotiationDate && lead.proposalDate
-        ? Math.floor((new Date(lead.negotiationDate).getTime() - new Date(lead.proposalDate).getTime()) / (1000 * 60 * 60 * 24))
-        : lead.proposalDate && !lead.negotiationDate
-        ? Math.floor((now.getTime() - new Date(lead.proposalDate).getTime()) / (1000 * 60 * 60 * 24))
+      lost: lead.lostDate
+        ? Math.floor(
+            (now.getTime() - new Date(lead.lostDate).getTime()) /
+              (1000 * 60 * 60 * 24),
+          )
         : 0,
-      negotiation: lead.wonDate && lead.negotiationDate
-        ? Math.floor((new Date(lead.wonDate).getTime() - new Date(lead.negotiationDate).getTime()) / (1000 * 60 * 60 * 24))
-        : lead.lostDate && lead.negotiationDate
-        ? Math.floor((new Date(lead.lostDate).getTime() - new Date(lead.negotiationDate).getTime()) / (1000 * 60 * 60 * 24))
-        : lead.negotiationDate
-        ? Math.floor((now.getTime() - new Date(lead.negotiationDate).getTime()) / (1000 * 60 * 60 * 24))
+      dormant: lead.dormantDate
+        ? Math.floor(
+            (now.getTime() - new Date(lead.dormantDate).getTime()) /
+              (1000 * 60 * 60 * 24),
+          )
         : 0,
-      won: lead.wonDate ? Math.floor((now.getTime() - new Date(lead.wonDate).getTime()) / (1000 * 60 * 60 * 24)) : 0,
-      lost: lead.lostDate ? Math.floor((now.getTime() - new Date(lead.lostDate).getTime()) / (1000 * 60 * 60 * 24)) : 0,
-      dormant: lead.dormantDate ? Math.floor((now.getTime() - new Date(lead.dormantDate).getTime()) / (1000 * 60 * 60 * 24)) : 0,
     };
 
     // Determine aging status based on days since last action
-    const activeThreshold = +this.configService.get('AGING_ACTIVE_THRESHOLD', 3);
-    const attentionThreshold = +this.configService.get('AGING_ATTENTION_THRESHOLD', 7);
+    const activeThreshold = +this.configService.get(
+      'AGING_ACTIVE_THRESHOLD',
+      3,
+    );
+    const attentionThreshold = +this.configService.get(
+      'AGING_ATTENTION_THRESHOLD',
+      7,
+    );
 
     let agingStatus: LeadAgingStatus;
 
-    if (lead.isConverted || lead.status === LeadStatus.WON || lead.status === LeadStatus.LOST) {
+    if (
+      lead.isConverted ||
+      lead.status === LeadStatus.WON ||
+      lead.status === LeadStatus.LOST
+    ) {
       agingStatus = LeadAgingStatus.ACTIVE; // Don't show aging for closed leads
     } else if (daysSinceLastAction <= activeThreshold) {
       agingStatus = LeadAgingStatus.ACTIVE;
@@ -331,7 +447,11 @@ export class LeadsService {
   }
 
   // Phase 2: New workflow methods
-  async requestQualification(id: string, requestDto: RequestQualificationDto, userId: string): Promise<Lead> {
+  async requestQualification(
+    id: string,
+    requestDto: RequestQualificationDto,
+    userId: string,
+  ): Promise<Lead> {
     const lead = await this.findOne(id);
 
     if (lead.status !== LeadStatus.NEW) {
@@ -347,11 +467,17 @@ export class LeadsService {
     return await this.leadsRepository.save(updatedLead);
   }
 
-  async approveQualification(id: string, approvalDto: ApproveQualificationDto, userId: string): Promise<Lead> {
+  async approveQualification(
+    id: string,
+    approvalDto: ApproveQualificationDto,
+    userId: string,
+  ): Promise<Lead> {
     const lead = await this.findOne(id);
 
     if (lead.qualificationStatus !== 'Pending') {
-      throw new BadRequestException('Lead is not pending qualification approval');
+      throw new BadRequestException(
+        'Lead is not pending qualification approval',
+      );
     }
 
     if (approvalDto.approved) {
@@ -361,7 +487,8 @@ export class LeadsService {
       lead.qualifiedById = userId;
     } else {
       lead.qualificationStatus = 'Rejected';
-      lead.rejectionReason = approvalDto.rejectionReason || approvalDto.comments || '';
+      lead.rejectionReason =
+        approvalDto.rejectionReason || approvalDto.comments || '';
     }
 
     lead.lastActionDate = new Date();

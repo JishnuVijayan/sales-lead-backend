@@ -1,15 +1,33 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  HttpCode,
+  HttpStatus,
+  Request,
+} from '@nestjs/common';
 import { ActivitiesService } from './activities.service';
 import { CreateActivityDto, UpdateActivityDto } from './dto/activity.dto';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { Roles } from '../../auth/decorators/roles.decorator';
+import { UserRole } from '../../entities/user.entity';
+import { UseGuards } from '@nestjs/common';
 
 @Controller('activities')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class ActivitiesController {
   constructor(private readonly activitiesService: ActivitiesService) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  create(@Body() createActivityDto: CreateActivityDto) {
-    return this.activitiesService.create(createActivityDto);
+  @Roles(UserRole.ADMIN, UserRole.ACCOUNT_MANAGER, UserRole.SALES_MANAGER)
+  create(@Body() createActivityDto: CreateActivityDto, @Request() req: any) {
+    return this.activitiesService.create(createActivityDto, req.user.userId);
   }
 
   @Get()
@@ -28,7 +46,10 @@ export class ActivitiesController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateActivityDto: UpdateActivityDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateActivityDto: UpdateActivityDto,
+  ) {
     return this.activitiesService.update(id, updateActivityDto);
   }
 

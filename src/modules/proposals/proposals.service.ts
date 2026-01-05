@@ -1,12 +1,30 @@
-import { Injectable, NotFoundException, BadRequestException, forwardRef, Inject } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  forwardRef,
+  Inject,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Proposal, ProposalItem, ProposalStatus, UserRole, ApprovalContext } from '../../entities';
+import {
+  Proposal,
+  ProposalItem,
+  ProposalStatus,
+  UserRole,
+  ApprovalContext,
+  ApprovalType,
+  ApprovalStage,
+  ApprovalStatus,
+} from '../../entities';
 import { CreateProposalDto, UpdateProposalDto } from './dto/proposal.dto';
 import { LeadsService } from '../leads/leads.service';
 import { UsersService } from '../users/users.service';
 import { PdfService } from '../../services/pdf.service';
 import { ApprovalsService } from '../approvals/approvals.service';
+import { ProposalApprovalConfigsService } from '../proposal-approval-configs/proposal-approval-configs.service';
+import { ProposalStageHistoryService } from '../../services/proposal-stage-history.service';
+import { ComprehensiveNotificationsService } from '../notifications/comprehensive-notifications.service';
 
 @Injectable()
 export class ProposalsService {
@@ -20,9 +38,35 @@ export class ProposalsService {
     private usersService: UsersService,
     private pdfService: PdfService,
     private approvalsService: ApprovalsService,
+    private proposalApprovalConfigsService: ProposalApprovalConfigsService,
+    private proposalStageHistoryService: ProposalStageHistoryService,
+    private comprehensiveNotificationsService: ComprehensiveNotificationsService,
   ) {}
 
-  async create(createProposalDto: CreateProposalDto, userId: string): Promise<Proposal> {
+  /**
+   * Map UserRole to ApprovalStage
+   */
+  private mapUserRoleToApprovalStage(userRole: string): ApprovalStage {
+    const roleToStageMap: Record<string, ApprovalStage> = {
+      [UserRole.ACCOUNT_MANAGER]: ApprovalStage.ACCOUNT_MANAGER,
+      [UserRole.SALES_MANAGER]: ApprovalStage.SALES_MANAGER,
+      [UserRole.FINANCE]: ApprovalStage.FINANCE,
+      [UserRole.LEGAL]: ApprovalStage.LEGAL,
+      [UserRole.PROCUREMENT]: ApprovalStage.PROCUREMENT,
+      [UserRole.DELIVERY_MANAGER]: ApprovalStage.DELIVERY_MANAGER,
+      [UserRole.CEO]: ApprovalStage.CEO,
+      [UserRole.ULCCS_APPROVER]: ApprovalStage.ULCCS,
+      [UserRole.ADMIN]: ApprovalStage.ACCOUNT_MANAGER, // Default fallback
+      [UserRole.PRESALES]: ApprovalStage.ACCOUNT_MANAGER, // Default fallback
+    };
+
+    return roleToStageMap[userRole] || ApprovalStage.ACCOUNT_MANAGER;
+  }
+
+  async create(
+    createProposalDto: CreateProposalDto,
+    userId: string,
+  ): Promise<Proposal> {
     const { items, ...proposalData } = createProposalDto;
 
     // Generate proposal number
@@ -30,9 +74,13 @@ export class ProposalsService {
     const proposalNumber = `PROP-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
 
     // Calculate totals
-    const subtotal = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+    const subtotal = items.reduce(
+      (sum, item) => sum + item.quantity * item.unitPrice,
+      0,
+    );
     const taxAmount = subtotal * ((proposalData.taxPercent || 0) / 100);
-    const discountAmount = subtotal * ((proposalData.discountPercent || 0) / 100);
+    const discountAmount =
+      subtotal * ((proposalData.discountPercent || 0) / 100);
     const totalAmount = subtotal + taxAmount - discountAmount;
 
     const proposal = this.proposalsRepository.create({
@@ -50,13 +98,13 @@ export class ProposalsService {
     const savedProposal = await this.proposalsRepository.save(proposal);
 
     // Save items
-    const proposalItems = items.map((item, index) => 
+    const proposalItems = items.map((item, index) =>
       this.proposalItemsRepository.create({
         ...item,
         proposalId: savedProposal.id,
         totalPrice: item.quantity * item.unitPrice,
         sortOrder: index + 1,
-      })
+      }),
     );
 
     await this.proposalItemsRepository.save(proposalItems);
@@ -68,7 +116,12 @@ export class ProposalsService {
     return this.findOne(savedProposal.id);
   }
 
-  async findAll(): Promise<{ data: Proposal[]; total: number; page: number; limit: number }> {
+  async findAll(): Promise<{
+    data: Proposal[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
     const [proposals, total] = await this.proposalsRepository.findAndCount({
       relations: ['items', 'lead', 'createdBy'],
       order: { createdDate: 'DESC' },
@@ -103,21 +156,29 @@ export class ProposalsService {
     return proposal;
   }
 
-  async update(id: string, updateProposalDto: UpdateProposalDto): Promise<Proposal> {
+  async update(
+    id: string,
+    updateProposalDto: UpdateProposalDto,
+  ): Promise<Proposal> {
     const proposal = await this.findOne(id);
     const { items, ...proposalData } = updateProposalDto;
 
     // Recalculate if items or percentages changed
-    if (items || proposalData.taxPercent !== undefined || proposalData.discountPercent !== undefined) {
+    if (
+      items ||
+      proposalData.taxPercent !== undefined ||
+      proposalData.discountPercent !== undefined
+    ) {
       const currentItems = items || proposal.items;
       const subtotal = currentItems.reduce((sum, item) => {
         const qty = item.quantity;
         const price = item.unitPrice;
-        return sum + (qty * price);
+        return sum + qty * price;
       }, 0);
 
       const taxPercent = proposalData.taxPercent ?? proposal.taxPercent;
-      const discountPercent = proposalData.discountPercent ?? proposal.discountPercent;
+      const discountPercent =
+        proposalData.discountPercent ?? proposal.discountPercent;
       const taxAmount = subtotal * (taxPercent / 100);
       const discountAmount = subtotal * (discountPercent / 100);
       const totalAmount = subtotal + taxAmount - discountAmount;
@@ -131,7 +192,10 @@ export class ProposalsService {
     }
 
     // Update proposal
-    const updatedProposal = this.proposalsRepository.merge(proposal, proposalData);
+    const updatedProposal = this.proposalsRepository.merge(
+      proposal,
+      proposalData,
+    );
     await this.proposalsRepository.save(updatedProposal);
 
     // Update items if provided
@@ -143,7 +207,7 @@ export class ProposalsService {
           proposalId: id,
           totalPrice: item.quantity * item.unitPrice,
           sortOrder: index + 1,
-        })
+        }),
       );
       await this.proposalItemsRepository.save(proposalItems);
     }
@@ -157,7 +221,7 @@ export class ProposalsService {
 
   async markAsSent(id: string): Promise<Proposal> {
     const proposal = await this.findOne(id);
-    
+
     proposal.status = ProposalStatus.SENT;
     proposal.sentDate = new Date();
 
@@ -171,7 +235,7 @@ export class ProposalsService {
 
   async createNewVersion(id: string): Promise<Proposal> {
     const originalProposal = await this.findOne(id);
-    
+
     // Create new proposal data based on original
     const newProposalData = {
       leadId: originalProposal.leadId,
@@ -191,10 +255,10 @@ export class ProposalsService {
 
     // Copy all items from original proposal
     const originalItems = await this.proposalItemsRepository.find({
-      where: { proposalId: originalProposal.id }
+      where: { proposalId: originalProposal.id },
     });
 
-    const newItems = originalItems.map(item => 
+    const newItems = originalItems.map((item) =>
       this.proposalItemsRepository.create({
         proposalId: savedProposal.id,
         itemName: item.itemName,
@@ -204,15 +268,19 @@ export class ProposalsService {
         unitPrice: item.unitPrice,
         totalPrice: item.totalPrice,
         sortOrder: item.sortOrder,
-      })
+      }),
     );
 
     await this.proposalItemsRepository.save(newItems);
 
     // Recalculate totals for the new version
-    const subtotal = newItems.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+    const subtotal = newItems.reduce(
+      (sum, item) => sum + item.quantity * item.unitPrice,
+      0,
+    );
     const taxAmount = subtotal * ((newProposalData.taxPercent || 0) / 100);
-    const discountAmount = subtotal * ((newProposalData.discountPercent || 0) / 100);
+    const discountAmount =
+      subtotal * ((newProposalData.discountPercent || 0) / 100);
     const totalAmount = subtotal + taxAmount - discountAmount;
 
     await this.proposalsRepository.update(savedProposal.id, {
@@ -230,32 +298,37 @@ export class ProposalsService {
 
   async generatePdf(id: string, userId: string): Promise<Buffer> {
     const proposal = await this.findOne(id);
-    
+
     // Check permissions
     if (!(await this.canAccessProposal(proposal, userId))) {
-      throw new Error('Access denied: You do not have permission to access this proposal');
+      throw new Error(
+        'Access denied: You do not have permission to access this proposal',
+      );
     }
-    
+
     return await this.pdfService.generateProposalPdf(proposal);
   }
 
-  private async canAccessProposal(proposal: Proposal, userId: string): Promise<boolean> {
+  private async canAccessProposal(
+    proposal: Proposal,
+    userId: string,
+  ): Promise<boolean> {
     // If user created the proposal, they can access it
     if (proposal.createdById === userId) {
       return true;
     }
-    
+
     // If user is assigned to the lead, they can access proposals for that lead
     if (proposal.lead?.assignedToId === userId) {
       return true;
     }
-    
+
     // Check user role for broader access
     const user = await this.usersService.findOne(userId);
     if (user.role === UserRole.ADMIN || user.role === UserRole.SALES_MANAGER) {
       return true;
     }
-    
+
     return false;
   }
 
@@ -264,37 +337,115 @@ export class ProposalsService {
     const proposal = await this.findOne(id);
 
     if (proposal.status !== ProposalStatus.DRAFT) {
-      throw new BadRequestException('Only draft proposals can be sent for approval');
+      throw new BadRequestException(
+        'Only draft proposals can be sent for approval',
+      );
     }
 
-    // Define approval workflow based on proposal value
-    const approvalStages: Array<{ stage: any; approverRole: string; isMandatory: boolean; sequenceOrder: number }> = [];
-    const value = proposal.totalAmount;
+    // Check if there's a custom approval flow defined
+    const customApprovalConfigs =
+      await this.proposalApprovalConfigsService.findByProposal(id);
 
-    // Account Manager approval (always required)
-    approvalStages.push({ stage: 'Account Manager', approverRole: UserRole.ACCOUNT_MANAGER, isMandatory: true, sequenceOrder: 1 });
+    const approvalStages: Array<{
+      stage: any;
+      approverRole: string;
+      approverId?: string;
+      isMandatory: boolean;
+      sequenceOrder: number;
+    }> = [];
 
-    // Finance approval for all proposals
-    approvalStages.push({ stage: 'Finance', approverRole: UserRole.FINANCE, isMandatory: true, sequenceOrder: 2 });
+    if (customApprovalConfigs && customApprovalConfigs.length > 0) {
+      // Use custom approval flow
+      for (const config of customApprovalConfigs) {
+        // Get the approver role - if specific user, use their role; otherwise use the role from config
+        let approverRole: string;
 
-    // Procurement approval for proposals > 50000
-    if (value > 50000) {
-      approvalStages.push({ stage: 'Procurement', approverRole: UserRole.PROCUREMENT, isMandatory: true, sequenceOrder: 3 });
-    }
+        if (
+          config.approvalType === ApprovalType.SPECIFIC_USER &&
+          config.approver
+        ) {
+          approverRole = config.approver.role || UserRole.ACCOUNT_MANAGER;
+        } else if (config.approverRole) {
+          approverRole = config.approverRole;
+        } else {
+          approverRole = UserRole.ACCOUNT_MANAGER; // Default fallback
+        }
 
-    // Delivery Manager approval for proposals > 100000
-    if (value > 100000) {
-      approvalStages.push({ stage: 'Delivery Manager', approverRole: UserRole.DELIVERY_MANAGER, isMandatory: true, sequenceOrder: 4 });
-    }
+        const stage: any = {
+          stage: this.mapUserRoleToApprovalStage(approverRole), // Map role to approval stage
+          approverRole: approverRole,
+          isMandatory: config.isMandatory,
+          sequenceOrder: config.sequenceOrder,
+        };
 
-    // CEO approval for proposals > 500000
-    if (value > 500000) {
-      approvalStages.push({ stage: 'CEO', approverRole: UserRole.CEO, isMandatory: true, sequenceOrder: 5 });
-    }
+        if (
+          config.approvalType === ApprovalType.SPECIFIC_USER &&
+          config.approverId
+        ) {
+          stage.approverId = config.approverId;
+        }
 
-    // ULCCS approval for proposals > 1000000
-    if (value > 1000000) {
-      approvalStages.push({ stage: 'ULCCS', approverRole: UserRole.ULCCS_APPROVER, isMandatory: true, sequenceOrder: 6 });
+        approvalStages.push(stage);
+      }
+    } else {
+      // Use default approval workflow based on proposal value
+      const value = proposal.totalAmount;
+
+      // Account Manager approval (always required)
+      approvalStages.push({
+        stage: 'Account Manager',
+        approverRole: UserRole.ACCOUNT_MANAGER,
+        isMandatory: true,
+        sequenceOrder: 1,
+      });
+
+      // Finance approval for all proposals
+      approvalStages.push({
+        stage: 'Finance',
+        approverRole: UserRole.FINANCE,
+        isMandatory: true,
+        sequenceOrder: 2,
+      });
+
+      // Procurement approval for proposals > 50000
+      if (value > 50000) {
+        approvalStages.push({
+          stage: 'Procurement',
+          approverRole: UserRole.PROCUREMENT,
+          isMandatory: true,
+          sequenceOrder: 3,
+        });
+      }
+
+      // Delivery Manager approval for proposals > 100000
+      if (value > 100000) {
+        approvalStages.push({
+          stage: 'Delivery Manager',
+          approverRole: UserRole.DELIVERY_MANAGER,
+          isMandatory: true,
+          sequenceOrder: 4,
+        });
+      }
+
+      // CEO approval for proposals > 500000
+      if (value > 500000) {
+        approvalStages.push({
+          stage: 'CEO',
+          approverRole: UserRole.CEO,
+          isMandatory: true,
+          sequenceOrder: 5,
+        });
+      }
+
+      // ULCCS approval for proposals > 1000000
+      if (value > 1000000) {
+        approvalStages.push({
+          stage: 'ULCCS',
+          approverRole: UserRole.ULCCS_APPROVER,
+          isMandatory: true,
+          sequenceOrder: 6,
+        });
+      }
     }
 
     // Create approval workflow
@@ -306,34 +457,141 @@ export class ProposalsService {
     });
 
     // Update proposal status
+    const oldStatus = proposal.status;
     proposal.status = ProposalStatus.SENT;
     proposal.sentDate = new Date();
+    proposal.approvalInProgress = true;
     await this.proposalsRepository.save(proposal);
+
+    // Log status change
+    await this.proposalStageHistoryService.createStageHistory(
+      proposal.id,
+      oldStatus,
+      ProposalStatus.SENT,
+      'Proposal sent for internal approval',
+      userId,
+    );
 
     return proposal;
   }
 
-  async checkApprovalStatus(id: string): Promise<{ allApproved: boolean; pendingStage?: string }> {
+  async checkApprovalStatus(
+    id: string,
+  ): Promise<{ allApproved: boolean; pendingStage?: string }> {
     const allApproved = await this.approvalsService.areAllApprovalsCompleted(
       ApprovalContext.PROPOSAL,
-      id
+      id,
     );
 
     if (allApproved) {
       // Move proposal to Accepted status
       const proposal = await this.findOne(id);
+      const oldStatus = proposal.status;
       proposal.status = ProposalStatus.ACCEPTED;
+      proposal.approvalInProgress = false; // Mark approval workflow as completed
       await this.proposalsRepository.save(proposal);
+
+      // Send approval completion notifications
+      await this.comprehensiveNotificationsService.notifyApprovalWorkflowCompleted(
+        ApprovalContext.PROPOSAL,
+        proposal.id,
+        proposal.leadId,
+        proposal.createdById,
+        proposal.lead?.assignedToId || '',
+      );
+
+      // Log status change
+      await this.proposalStageHistoryService.createStageHistory(
+        proposal.id,
+        oldStatus,
+        ProposalStatus.ACCEPTED,
+        'All approvals completed - proposal accepted',
+      );
     }
 
     const pendingApproval = await this.approvalsService.getNextPendingApproval(
       ApprovalContext.PROPOSAL,
-      id
+      id,
     );
 
     return {
       allApproved,
       pendingStage: pendingApproval?.stage,
     };
+  }
+
+  // Return proposal to presales team
+  async returnToCreator(
+    id: string,
+    userId: string,
+    reason: string,
+  ): Promise<Proposal> {
+    const proposal = await this.findOne(id);
+
+    // Check if approval workflow is in progress or if proposal is sent (should have approvals)
+    const hasApprovals = await this.approvalsService.findByEntity(
+      ApprovalContext.PROPOSAL,
+      id,
+    );
+
+    if (
+      !proposal.approvalInProgress &&
+      !(proposal.status === ProposalStatus.SENT && hasApprovals.length > 0)
+    ) {
+      throw new BadRequestException('No approval workflow in progress');
+    }
+
+    // Get all approvals for this proposal
+    const approvals = await this.approvalsService.findByEntity(
+      ApprovalContext.PROPOSAL,
+      id,
+    );
+
+    // Find the approval being returned
+    const currentApproval = approvals.find(
+      (a) => a.status === ApprovalStatus.PENDING,
+    );
+    if (currentApproval) {
+      await this.approvalsService.returnToCreator(
+        currentApproval.id,
+        userId,
+        reason,
+      );
+    }
+
+    // Skip all subsequent pending approvals
+    for (const approval of approvals) {
+      if (
+        approval.status === ApprovalStatus.PENDING &&
+        approval.id !== currentApproval?.id
+      ) {
+        await this.approvalsService.skipApproval(
+          approval.id,
+          userId,
+          `Skipped due to return: ${reason}`,
+        );
+      }
+    }
+
+    // Reset proposal to draft
+    const oldStatus = proposal.status;
+    proposal.approvalInProgress = false;
+    proposal.status = ProposalStatus.DRAFT;
+    await this.proposalsRepository.save(proposal);
+
+    // Log status change
+    await this.proposalStageHistoryService.createStageHistory(
+      proposal.id,
+      oldStatus,
+      ProposalStatus.DRAFT,
+      `Returned to presales: ${reason}`,
+      userId,
+    );
+
+    return proposal;
+  }
+
+  async getStageHistory(proposalId: string): Promise<any[]> {
+    return await this.proposalStageHistoryService.getStageHistory(proposalId);
   }
 }

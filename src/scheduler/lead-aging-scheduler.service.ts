@@ -27,7 +27,10 @@ export class LeadAgingSchedulerService {
     this.logger.log('Starting auto-close dormant leads job');
 
     try {
-      const dormantThreshold = +this.configService.get('AGING_DORMANT_THRESHOLD', 30);
+      const dormantThreshold = +this.configService.get(
+        'AGING_DORMANT_THRESHOLD',
+        30,
+      );
 
       // Find leads that haven't had action for more than the dormant threshold
       // and are not already closed or dormant
@@ -48,7 +51,9 @@ export class LeadAgingSchedulerService {
         lead.status = LeadStatus.DORMANT;
         lead.dormantDate = new Date();
         lead.isActive = false;
-        lead.internalNotes = (lead.internalNotes || '') + `\n\nAuto-closed as dormant on ${new Date().toISOString()}`;
+        lead.internalNotes =
+          (lead.internalNotes || '') +
+          `\n\nAuto-closed as dormant on ${new Date().toISOString()}`;
 
         await this.leadsRepository.save(lead);
         closedCount++;
@@ -80,7 +85,8 @@ export class LeadAgingSchedulerService {
 
       for (const lead of activeLeads) {
         const daysIdle = Math.floor(
-          (new Date().getTime() - new Date(lead.lastActionDate).getTime()) / (1000 * 60 * 60 * 24)
+          (new Date().getTime() - new Date(lead.lastActionDate).getTime()) /
+            (1000 * 60 * 60 * 24),
         );
 
         // Get SLA config for lead's current status
@@ -117,41 +123,50 @@ export class LeadAgingSchedulerService {
               lead.id,
               salesManager.id,
               lead.assignedTo.name,
-              daysIdle
+              daysIdle,
             );
             escalationCount++;
 
             // Add escalation note to lead
-            lead.internalNotes = (lead.internalNotes || '') + 
+            lead.internalNotes =
+              (lead.internalNotes || '') +
               `\n\nEscalated to Sales Manager on ${new Date().toISOString()} (${daysIdle} days idle)`;
             await this.leadsRepository.save(lead);
 
             this.logger.warn(
-              `ESCALATED: Lead "${lead.name}" (ID: ${lead.id}) to Sales Manager after ${daysIdle} days`
+              `ESCALATED: Lead "${lead.name}" (ID: ${lead.id}) to Sales Manager after ${daysIdle} days`,
             );
           }
-        } else if (daysIdle >= slaConfig.criticalThresholdDays && lead.assignedTo) {
+        } else if (
+          daysIdle >= slaConfig.criticalThresholdDays &&
+          lead.assignedTo
+        ) {
           // Send critical SLA notification
           await this.notificationsService.notifySLACritical(
             'Lead',
             lead.id,
             lead.assignedTo.id,
-            slaStageType
+            slaStageType,
           );
           idleCount++;
-        } else if (daysIdle >= slaConfig.warningThresholdDays && lead.assignedTo) {
+        } else if (
+          daysIdle >= slaConfig.warningThresholdDays &&
+          lead.assignedTo
+        ) {
           // Send warning notification
           await this.notificationsService.notifySLAWarning(
             'Lead',
             lead.id,
             lead.assignedTo.id,
-            slaStageType
+            slaStageType,
           );
           idleCount++;
         }
       }
 
-      this.logger.log(`Sent ${idleCount} idle lead notifications and ${escalationCount} escalations`);
+      this.logger.log(
+        `Sent ${idleCount} idle lead notifications and ${escalationCount} escalations`,
+      );
     } catch (error) {
       this.logger.error('Error in escalation check job', error);
     }
@@ -174,10 +189,12 @@ export class LeadAgingSchedulerService {
       for (const lead of activeLeads) {
         const now = new Date();
         const leadAge = Math.floor(
-          (now.getTime() - new Date(lead.createdDate).getTime()) / (1000 * 60 * 60 * 24)
+          (now.getTime() - new Date(lead.createdDate).getTime()) /
+            (1000 * 60 * 60 * 24),
         );
         const daysSinceLastAction = Math.floor(
-          (now.getTime() - new Date(lead.lastActionDate).getTime()) / (1000 * 60 * 60 * 24)
+          (now.getTime() - new Date(lead.lastActionDate).getTime()) /
+            (1000 * 60 * 60 * 24),
         );
 
         lead.leadAge = leadAge;
@@ -227,8 +244,11 @@ export class LeadAgingSchedulerService {
     this.logger.log('Starting agreement stage monitoring job');
 
     try {
-      const { Agreement, AgreementStage } = await import('../entities/index.js');
-      const agreementRepo = this.leadsRepository.manager.getRepository(Agreement);
+      const { Agreement, AgreementStage } = await import(
+        '../entities/index.js'
+      );
+      const agreementRepo =
+        this.leadsRepository.manager.getRepository(Agreement);
 
       const activeAgreements = await agreementRepo.find({
         where: [
@@ -249,13 +269,17 @@ export class LeadAgingSchedulerService {
       for (const agreement of activeAgreements) {
         // Get current stage from most recent stage history entry
         const currentStageHistory = agreement.stageHistory?.sort(
-          (a, b) => new Date(b.changedDate).getTime() - new Date(a.changedDate).getTime()
+          (a, b) =>
+            new Date(b.changedDate).getTime() -
+            new Date(a.changedDate).getTime(),
         )[0];
 
         if (!currentStageHistory) continue;
 
         const daysInStage = Math.floor(
-          (new Date().getTime() - new Date(currentStageHistory.changedDate).getTime()) / (1000 * 60 * 60 * 24)
+          (new Date().getTime() -
+            new Date(currentStageHistory.changedDate).getTime()) /
+            (1000 * 60 * 60 * 24),
         );
 
         // Map agreement stage to SLA stage type
@@ -296,13 +320,13 @@ export class LeadAgingSchedulerService {
         if (daysInStage >= slaConfig.criticalThresholdDays) {
           // Send critical delay notification to assigned executive
           const recipient = agreement.lead?.assignedTo;
-          
+
           if (recipient) {
             await this.notificationsService.notifyAgreementStageDelay(
               agreement.id,
               recipient.id,
               agreement.stage,
-              daysInStage
+              daysInStage,
             );
           }
 
@@ -312,22 +336,28 @@ export class LeadAgingSchedulerService {
               where: { role: UserRole.CEO },
             });
             if (ceo) {
-              await this.notificationsService.notifyCEOApprovalPending(agreement.id, ceo.id);
+              await this.notificationsService.notifyCEOApprovalPending(
+                agreement.id,
+                ceo.id,
+              );
             }
           }
 
           // Special handling for client review
-          if (agreement.stage === AgreementStage.CLIENT_REVIEW && agreement.lead?.assignedTo) {
+          if (
+            agreement.stage === AgreementStage.CLIENT_REVIEW &&
+            agreement.lead?.assignedTo
+          ) {
             await this.notificationsService.notifyClientReviewReminder(
               agreement.id,
               agreement.lead.assignedTo.id,
-              daysInStage
+              daysInStage,
             );
           }
 
           delayCount++;
           this.logger.warn(
-            `AGREEMENT DELAY: Agreement ${agreement.id} in ${agreement.stage} for ${daysInStage} days`
+            `AGREEMENT DELAY: Agreement ${agreement.id} in ${agreement.stage} for ${daysInStage} days`,
           );
         } else if (daysInStage >= slaConfig.warningThresholdDays) {
           // Send warning notification
@@ -337,7 +367,7 @@ export class LeadAgingSchedulerService {
               'Agreement',
               agreement.id,
               recipient.id,
-              slaStageType
+              slaStageType,
             );
           }
         }

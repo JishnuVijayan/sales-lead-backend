@@ -1,6 +1,28 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, HttpCode, HttpStatus, UseGuards, Request, Put } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+  Request,
+  Put,
+} from '@nestjs/common';
 import { LeadsService } from './leads.service';
-import { CreateLeadDto, UpdateLeadDto, QualifyLeadDto, FilterLeadsDto, RequestQualificationDto, ApproveQualificationDto } from './dto/lead.dto';
+import { LeadLifecycleHistoryService } from '../../services/lead-lifecycle-history.service';
+import {
+  CreateLeadDto,
+  UpdateLeadDto,
+  QualifyLeadDto,
+  FilterLeadsDto,
+  RequestQualificationDto,
+  ApproveQualificationDto,
+} from './dto/lead.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
@@ -9,7 +31,10 @@ import { UserRole } from '../../entities/user.entity';
 @Controller('leads')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class LeadsController {
-  constructor(private readonly leadsService: LeadsService) {}
+  constructor(
+    private readonly leadsService: LeadsService,
+    private readonly lifecycleHistoryService: LeadLifecycleHistoryService,
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -80,25 +105,46 @@ export class LeadsController {
 
   @Patch(':id/claim')
   @HttpCode(HttpStatus.OK)
-  claim(@Param('id') id: string, @Body('userId') userId: string) {
-    return this.leadsService.claim(id, userId);
+  @Roles(UserRole.SALES_MANAGER)
+  claim(@Param('id') id: string, @Request() req: any) {
+    return this.leadsService.claim(id, req.user.userId);
   }
-// Phase 2: New workflow endpoints
+  // Phase 2: New workflow endpoints
   @Put(':id/request-qualification')
   @HttpCode(HttpStatus.OK)
   @Roles(UserRole.ADMIN, UserRole.ACCOUNT_MANAGER)
-  requestQualification(@Param('id') id: string, @Body() requestDto: RequestQualificationDto, @Request() req) {
-    return this.leadsService.requestQualification(id, requestDto, req.user.userId);
+  requestQualification(
+    @Param('id') id: string,
+    @Body() requestDto: RequestQualificationDto,
+    @Request() req,
+  ) {
+    return this.leadsService.requestQualification(
+      id,
+      requestDto,
+      req.user.userId,
+    );
   }
 
   @Put(':id/approve-qualification')
   @HttpCode(HttpStatus.OK)
   @Roles(UserRole.ADMIN, UserRole.SALES_MANAGER)
-  approveQualification(@Param('id') id: string, @Body() approvalDto: ApproveQualificationDto, @Request() req) {
-    return this.leadsService.approveQualification(id, approvalDto, req.user.userId);
+  approveQualification(
+    @Param('id') id: string,
+    @Body() approvalDto: ApproveQualificationDto,
+    @Request() req,
+  ) {
+    return this.leadsService.approveQualification(
+      id,
+      approvalDto,
+      req.user.userId,
+    );
   }
 
-  
+  @Get(':id/lifecycle-history')
+  getLifecycleHistory(@Param('id') id: string) {
+    return this.lifecycleHistoryService.getLeadLifecycleHistory(id);
+  }
+
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id') id: string) {

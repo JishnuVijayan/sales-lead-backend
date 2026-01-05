@@ -3,11 +3,45 @@ export { User, UserRole } from './user.entity';
 export { LeadActivity, ActivityType } from './lead-activity.entity';
 export { Proposal, ProposalStatus } from './proposal.entity';
 export { ProposalItem } from './proposal-item.entity';
+export { ProposalDocument, UploadReason } from './proposal-document.entity';
+export {
+  ProposalActivity,
+  ProposalActivityType,
+} from './proposal-activity.entity';
+export { ProposalStageHistory } from './proposal-stage-history.entity';
+export {
+  ProposalApprovalConfig,
+  ApprovalType,
+} from './proposal-approval-config.entity';
 export { WorkOrder, WorkOrderStatus } from './work-order.entity';
 export { Document, DocumentType } from './document.entity';
-export { Negotiation, NegotiationStatus, NegotiationOutcome } from './negotiation.entity';
-export { Approval, ApprovalStatus, ApprovalStage, ApprovalContext } from './approval.entity';
-export { Agreement, AgreementStage, AgreementType, PaymentTerms } from './agreement.entity';
+export {
+  Negotiation,
+  NegotiationStatus,
+  NegotiationOutcome,
+} from './negotiation.entity';
+export {
+  Approval,
+  ApprovalStatus,
+  ApprovalStage,
+  ApprovalContext,
+} from './approval.entity';
+export {
+  Agreement,
+  AgreementStage,
+  AgreementType,
+  PaymentTerms,
+} from './agreement.entity';
 export { AgreementStageHistory } from './agreement-stage-history.entity';
+export { AgreementApprovalConfig } from './agreement-approval-config.entity';
+export {
+  AgreementActivity,
+  AgreementActivityType,
+} from './agreement-activity.entity';
+export { AgreementDelay, DelayReason } from './agreement-delay.entity';
 export { SLAConfig, SLAStageType } from './sla-config.entity';
-export { Notification, NotificationType, NotificationStatus } from './notification.entity';
+export {
+  Notification,
+  NotificationType,
+  NotificationStatus,
+} from './notification.entity';

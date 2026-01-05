@@ -1,4 +1,17 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, HttpStatus, Res, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  HttpCode,
+  HttpStatus,
+  Res,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import type { Response } from 'express';
 import { ProposalsService } from './proposals.service';
 import { CreateProposalDto, UpdateProposalDto } from './dto/proposal.dto';
@@ -31,7 +44,10 @@ export class ProposalsController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateProposalDto: UpdateProposalDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateProposalDto: UpdateProposalDto,
+  ) {
     return this.proposalsService.update(id, updateProposalDto);
   }
 
@@ -48,7 +64,11 @@ export class ProposalsController {
   }
 
   @Get(':id/pdf')
-  async generatePdf(@Param('id') id: string, @Res() res: Response, @Request() req: any) {
+  async generatePdf(
+    @Param('id') id: string,
+    @Res() res: Response,
+    @Request() req: any,
+  ) {
     const pdfBuffer = await this.proposalsService.generatePdf(id, req.user.id);
 
     res.set({
@@ -70,6 +90,25 @@ export class ProposalsController {
   @Get(':id/approval-status')
   checkApprovalStatus(@Param('id') id: string) {
     return this.proposalsService.checkApprovalStatus(id);
+  }
+
+  @Post(':id/return-to-creator')
+  @UseGuards(JwtAuthGuard)
+  returnToCreator(
+    @Param('id') id: string,
+    @Body() body: { reason: string },
+    @Request() req,
+  ) {
+    return this.proposalsService.returnToCreator(
+      id,
+      req.user.userId,
+      body.reason,
+    );
+  }
+
+  @Get(':id/stage-history')
+  getStageHistory(@Param('id') id: string) {
+    return this.proposalsService.getStageHistory(id);
   }
 
   @Delete(':id')

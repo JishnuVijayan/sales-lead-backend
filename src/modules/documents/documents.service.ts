@@ -13,7 +13,11 @@ export class DocumentsService {
     private leadsService: LeadsService,
   ) {}
 
-  async create(createDocumentDto: CreateDocumentDto, file: Express.Multer.File, userId: string): Promise<Document> {
+  async create(
+    createDocumentDto: CreateDocumentDto,
+    file: Express.Multer.File,
+    userId: string,
+  ): Promise<Document> {
     const document = this.documentsRepository.create({
       ...createDocumentDto,
       fileName: file.originalname || 'unnamed-file',
@@ -53,16 +57,38 @@ export class DocumentsService {
     return document;
   }
 
-  async update(id: string, updateDocumentDto: UpdateDocumentDto): Promise<Document> {
+  async update(
+    id: string,
+    updateDocumentDto: UpdateDocumentDto,
+  ): Promise<Document> {
     const document = await this.findOne(id);
 
-    const updatedDocument = this.documentsRepository.merge(document, updateDocumentDto);
+    const updatedDocument = this.documentsRepository.merge(
+      document,
+      updateDocumentDto,
+    );
     return await this.documentsRepository.save(updatedDocument);
   }
 
   async remove(id: string): Promise<void> {
     const document = await this.findOne(id);
     await this.documentsRepository.remove(document);
+  }
+
+  async findByWorkOrder(workOrderId: string): Promise<Document[]> {
+    return await this.documentsRepository.find({
+      where: { workOrderId },
+      relations: ['uploadedBy'],
+      order: { uploadedDate: 'DESC' },
+    });
+  }
+
+  async findByAgreement(agreementId: string): Promise<Document[]> {
+    return await this.documentsRepository.find({
+      where: { agreementId },
+      relations: ['uploadedBy'],
+      order: { uploadedDate: 'DESC' },
+    });
   }
 
   async findByLead(leadId: string): Promise<Document[]> {

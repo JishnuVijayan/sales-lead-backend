@@ -22,44 +22,51 @@ async function createTestData() {
     console.log('Using user:', user.id, user.email);
 
     // Create a test lead
-    const lead = await leadsService.create({
-      name: 'Test Lead for PDF',
-      organization: 'Test Company',
-      email: 'test@company.com',
-      phone: '123-456-7890',
-      source: LeadSource.WEBSITE,
-      productInterest: 'Software Solution',
-      requirementSummary: 'Need a comprehensive software solution',
-    }, user.id);
+    const lead = await leadsService.create(
+      {
+        name: 'Test Lead for PDF',
+        organization: 'Test Company',
+        email: 'test@company.com',
+        phone: '123-456-7890',
+        source: LeadSource.WEBSITE,
+        productInterest: 'Software Solution',
+        requirementSummary: 'Need a comprehensive software solution',
+      },
+      user.id,
+    );
 
     console.log('Created test lead:', lead.id);
 
     // Create a proposal for the lead
-    const proposal = await proposalsService.create({
-      title: 'Test Proposal',
-      description: 'This is a test proposal for PDF generation',
-      leadId: lead.id,
-      validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
-      items: [
-        {
-          itemName: 'Software License',
-          description: 'Annual software license',
-          quantity: 1,
-          unitPrice: 1000,
-        },
-        {
-          itemName: 'Implementation Services',
-          description: 'Professional implementation services',
-          quantity: 10,
-          unitPrice: 200,
-        },
-      ],
-    }, user.id); // created by user
+    const proposal = await proposalsService.create(
+      {
+        title: 'Test Proposal',
+        description: 'This is a test proposal for PDF generation',
+        leadId: lead.id,
+        validUntil: new Date(
+          Date.now() + 30 * 24 * 60 * 60 * 1000,
+        ).toISOString(), // 30 days from now
+        items: [
+          {
+            itemName: 'Software License',
+            description: 'Annual software license',
+            quantity: 1,
+            unitPrice: 1000,
+          },
+          {
+            itemName: 'Implementation Services',
+            description: 'Professional implementation services',
+            quantity: 10,
+            unitPrice: 200,
+          },
+        ],
+      },
+      user.id,
+    ); // created by user
 
     console.log('Created test proposal:', proposal.id);
     console.log('Test data created successfully!');
     console.log('Proposal ID for testing:', proposal.id);
-
   } catch (error) {
     console.error('Error creating test data:', error);
   }

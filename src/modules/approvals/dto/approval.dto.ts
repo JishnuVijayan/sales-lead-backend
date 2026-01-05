@@ -1,6 +1,20 @@
-import { IsEnum, IsString, IsUUID, IsOptional, IsBoolean, IsInt, IsNotEmpty, IsArray, ValidateNested } from 'class-validator';
+import {
+  IsEnum,
+  IsString,
+  IsUUID,
+  IsOptional,
+  IsBoolean,
+  IsInt,
+  IsNotEmpty,
+  IsArray,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
-import { ApprovalStatus, ApprovalStage, ApprovalContext } from '../../../entities/approval.entity';
+import {
+  ApprovalStatus,
+  ApprovalStage,
+  ApprovalContext,
+} from '../../../entities/approval.entity';
 
 export class CreateApprovalDto {
   @IsEnum(ApprovalContext)
@@ -48,11 +62,18 @@ export class UpdateApprovalDto {
 export class RespondToApprovalDto {
   @IsEnum(ApprovalStatus)
   @IsNotEmpty()
-  status: ApprovalStatus; // Must be Approved or Rejected
+  status: ApprovalStatus; // Must be Approved, Rejected, or Returned
 
   @IsString()
   @IsOptional()
   comments?: string;
+
+  @IsArray()
+  @IsOptional()
+  attachments?: Array<{
+    fileName: string;
+    filePath: string;
+  }>;
 }
 
 export class ApprovalStageDto {

@@ -1,7 +1,16 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  ManyToOne,
+  OneToMany,
+  JoinColumn,
+} from 'typeorm';
 import { Lead } from './lead.entity';
 import { User } from './user.entity';
 import { Negotiation } from './negotiation.entity';
+import { Document } from './document.entity';
 
 export enum WorkOrderStatus {
   PENDING = 'Pending',
@@ -18,7 +27,7 @@ export class WorkOrder {
   @Column({ unique: true })
   workOrderNumber: string;
 
-  @ManyToOne(() => Lead, lead => lead.workOrders, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Lead, (lead) => lead.workOrders, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'lead_id' })
   lead: Lead;
 
@@ -31,6 +40,9 @@ export class WorkOrder {
 
   @Column({ name: 'negotiation_id', nullable: true })
   negotiationId: string;
+
+  @OneToMany(() => Document, (document) => document.workOrder)
+  documents: Document[];
 
   @Column()
   title: string;
@@ -53,20 +65,6 @@ export class WorkOrder {
 
   @Column({ type: 'date', nullable: true })
   actualDeliveryDate: Date;
-
-  @ManyToOne(() => User, { nullable: true, eager: true })
-  @JoinColumn({ name: 'assigned_to_operations' })
-  assignedToOperations: User;
-
-  @Column({ name: 'assigned_to_operations', nullable: true })
-  assignedToOperationsId: string;
-
-  @ManyToOne(() => User, { nullable: true, eager: true })
-  @JoinColumn({ name: 'assigned_to_accounts' })
-  assignedToAccounts: User;
-
-  @Column({ name: 'assigned_to_accounts', nullable: true })
-  assignedToAccountsId: string;
 
   @ManyToOne(() => User, { nullable: true, eager: true })
   @JoinColumn({ name: 'created_by' })

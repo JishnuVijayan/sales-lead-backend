@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../../entities';
@@ -42,7 +46,7 @@ export class UsersService {
       order: { createdDate: 'DESC' },
     });
 
-    return users.map(user => {
+    return users.map((user) => {
       const { password, ...result } = user;
       return result as User;
     });

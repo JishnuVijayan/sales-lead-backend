@@ -1,6 +1,22 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
-import { CreateUserDto, UpdateUserDto, LoginDto, SignupDto } from './dto/user.dto';
+import {
+  CreateUserDto,
+  UpdateUserDto,
+  LoginDto,
+  SignupDto,
+} from './dto/user.dto';
 import { JwtService } from '@nestjs/jwt';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
@@ -41,14 +57,17 @@ export class UsersController {
       success: true,
       message: 'Account created successfully',
       user,
-      access_token: token
+      access_token: token,
     };
   }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() loginDto: LoginDto) {
-    const user = await this.usersService.validateUser(loginDto.email, loginDto.password);
+    const user = await this.usersService.validateUser(
+      loginDto.email,
+      loginDto.password,
+    );
     if (!user) {
       return { success: false, message: 'Invalid credentials' };
     }
@@ -56,15 +75,23 @@ export class UsersController {
     const payload = { email: user.email, sub: user.id };
     const token = this.jwtService.sign(payload);
 
-    return { 
-      success: true, 
+    return {
+      success: true,
       user,
-      access_token: token 
+      access_token: token,
     };
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.ACCOUNT_MANAGER, UserRole.SALES_MANAGER, UserRole.DELIVERY_MANAGER, UserRole.FINANCE, UserRole.PROCUREMENT)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.ACCOUNT_MANAGER,
+    UserRole.SALES_MANAGER,
+    UserRole.DELIVERY_MANAGER,
+    UserRole.FINANCE,
+    UserRole.PROCUREMENT,
+    UserRole.LEGAL,
+  )
   @Get()
   findAll() {
     return this.usersService.findAll();

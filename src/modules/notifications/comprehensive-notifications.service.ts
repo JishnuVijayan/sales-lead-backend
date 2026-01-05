@@ -1,10 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
-import { Notification, NotificationType } from '../../entities/notification.entity';
+import {
+  Notification,
+  NotificationType,
+} from '../../entities/notification.entity';
 import { User, UserRole } from '../../entities/user.entity';
 import { Lead } from '../../entities/lead.entity';
 import { Agreement } from '../../entities/agreement.entity';
+import { Proposal } from '../../entities/proposal.entity';
+import { ApprovalContext } from '../../entities/approval.entity';
 import { NotificationsService } from './notifications.service';
 
 @Injectable()
@@ -18,6 +23,8 @@ export class ComprehensiveNotificationsService {
     private leadsRepository: Repository<Lead>,
     @InjectRepository(Agreement)
     private agreementsRepository: Repository<Agreement>,
+    @InjectRepository(Proposal)
+    private proposalsRepository: Repository<Proposal>,
     private notificationsService: NotificationsService,
   ) {}
 
@@ -46,10 +53,7 @@ export class ComprehensiveNotificationsService {
         lead.assignedToId,
         NotificationType.LEAD_ASSIGNED,
         'New Lead Assigned to You',
-        `<p>A new lead <strong>${lead.organization || lead.name}</strong> has been assigned to you by <strong>${creatorName}</strong>.</p>
-         <p><strong>Contact:</strong> ${lead.name}</p>
-         <p><strong>Source:</strong> ${lead.source}</p>
-         <p>Please review and take appropriate action.</p>`,
+        `A new lead "${lead.organization || lead.name}" has been assigned to you by ${creatorName}. Contact: ${lead.name}, Source: ${lead.source}. Please review and take appropriate action.`,
         'Lead',
         leadId,
       );
@@ -65,8 +69,7 @@ export class ComprehensiveNotificationsService {
         manager.id,
         NotificationType.LEAD_CREATED,
         'New Lead Created',
-        `<p>A new lead <strong>${lead.organization || lead.name}</strong> has been created by <strong>${creatorName}</strong>.</p>
-         <p><strong>Status:</strong> ${lead.status}</p>`,
+        `A new lead "${lead.organization || lead.name}" has been created by ${creatorName}. Status: ${lead.status}.`,
         'Lead',
         leadId,
       );
@@ -76,7 +79,10 @@ export class ComprehensiveNotificationsService {
   /**
    * Stage 2: Lead Qualification
    */
-  async notifyLeadQualified(leadId: string, qualifiedById: string): Promise<void> {
+  async notifyLeadQualified(
+    leadId: string,
+    qualifiedById: string,
+  ): Promise<void> {
     const lead = await this.leadsRepository.findOne({
       where: { id: leadId },
       relations: ['createdBy', 'assignedTo'],
@@ -85,7 +91,7 @@ export class ComprehensiveNotificationsService {
     if (!lead) return;
 
     const recipients: string[] = [];
-    
+
     // Notify lead creator
     if (lead.createdById && lead.createdById !== qualifiedById) {
       recipients.push(lead.createdById);
@@ -101,17 +107,17 @@ export class ComprehensiveNotificationsService {
         recipientId,
         NotificationType.LEAD_QUALIFIED,
         'Lead Qualified',
-        `<p>Lead <strong>${lead.organization || lead.name}</strong> has been qualified.</p>
-         <p><strong>Estimated Budget:</strong> ₹${lead.estimatedBudget?.toLocaleString('en-IN') || 'N/A'}</p>
-         <p>You can now proceed with proposal preparation.</p>
-         <p><a href="${process.env.FRONTEND_URL}/app/leads/${leadId}">View Lead</a></p>`,
+        `Lead "${lead.organization || lead.name}" has been qualified. Estimated Budget: ₹${lead.estimatedBudget?.toLocaleString('en-IN') || 'N/A'}. You can now proceed with proposal preparation.`,
         'Lead',
         leadId,
       );
     }
   }
 
-  async notifyLeadQualificationRejected(leadId: string, reason: string): Promise<void> {
+  async notifyLeadQualificationRejected(
+    leadId: string,
+    reason: string,
+  ): Promise<void> {
     const lead = await this.leadsRepository.findOne({
       where: { id: leadId },
       relations: ['createdBy', 'assignedTo'],
@@ -126,9 +132,7 @@ export class ComprehensiveNotificationsService {
         recipientId,
         NotificationType.LEAD_QUALIFICATION_REJECTED,
         'Lead Qualification Rejected',
-        `<p>Lead <strong>${lead.organization || lead.name}</strong> qualification was rejected.</p>
-         <p><strong>Reason:</strong> ${reason}</p>
-         <p><a href="${process.env.FRONTEND_URL}/app/leads/${leadId}">View Lead</a></p>`,
+        `Lead "${lead.organization || lead.name}" qualification was rejected. Reason: ${reason}.`,
         'Lead',
         leadId,
       );
@@ -138,7 +142,11 @@ export class ComprehensiveNotificationsService {
   /**
    * Stage 4: Proposal Creation
    */
-  async notifyProposalCreated(proposalId: string, leadId: string, createdById: string): Promise<void> {
+  async notifyProposalCreated(
+    proposalId: string,
+    leadId: string,
+    createdById: string,
+  ): Promise<void> {
     const lead = await this.leadsRepository.findOne({
       where: { id: leadId },
       relations: ['assignedTo'],
@@ -156,9 +164,7 @@ export class ComprehensiveNotificationsService {
         user.id,
         NotificationType.PROPOSAL_CREATED,
         'New Proposal Created - Review Required',
-        `<p>A new proposal has been created for lead <strong>${lead.organization || lead.name}</strong>.</p>
-         <p>Your technical review is required.</p>
-         <p><a href="${process.env.FRONTEND_URL}/app/proposals/${proposalId}">View Proposal</a></p>`,
+        `A new proposal has been created for lead "${lead.organization || lead.name}". Your technical review is required.`,
         'Proposal',
         proposalId,
       );
@@ -168,7 +174,11 @@ export class ComprehensiveNotificationsService {
   /**
    * Stage 5: Internal Approvals
    */
-  async notifyProposalApprovalRequired(proposalId: string, approverRole: UserRole, leadName: string): Promise<void> {
+  async notifyProposalApprovalRequired(
+    proposalId: string,
+    approverRole: UserRole,
+    leadName: string,
+  ): Promise<void> {
     const approvers = await this.usersRepository.find({
       where: { role: approverRole },
     });
@@ -185,35 +195,40 @@ export class ComprehensiveNotificationsService {
         approver.id,
         NotificationType.PROPOSAL_APPROVAL_REQUIRED,
         `Proposal Approval Required - ${roleNames[approverRole] || approverRole}`,
-        `<p>A proposal for <strong>${leadName}</strong> requires your approval.</p>
-         <p>Please review and approve or provide feedback.</p>
-         <p><a href="${process.env.FRONTEND_URL}/app/proposals/${proposalId}">Review Proposal</a></p>`,
+        `A proposal for "${leadName}" requires your approval. Please review and approve or provide feedback.`,
         'Proposal',
         proposalId,
       );
     }
   }
 
-  async notifyProposalApproved(proposalId: string, approvedBy: string, approverRole: string, accountManagerId: string): Promise<void> {
+  async notifyProposalApproved(
+    proposalId: string,
+    approvedBy: string,
+    approverRole: string,
+    accountManagerId: string,
+  ): Promise<void> {
     await this.notificationsService.createNotification(
       accountManagerId,
       NotificationType.PROPOSAL_APPROVED,
       `Proposal Approved by ${approverRole}`,
-      `<p>Your proposal has been approved by ${approverRole}.</p>
-       <p><a href="${process.env.FRONTEND_URL}/app/proposals/${proposalId}">View Proposal</a></p>`,
+      `Your proposal has been approved by ${approverRole}.`,
       'Proposal',
       proposalId,
     );
   }
 
-  async notifyProposalRejected(proposalId: string, rejectedBy: string, reason: string, accountManagerId: string): Promise<void> {
+  async notifyProposalRejected(
+    proposalId: string,
+    rejectedBy: string,
+    reason: string,
+    accountManagerId: string,
+  ): Promise<void> {
     await this.notificationsService.createNotification(
       accountManagerId,
       NotificationType.PROPOSAL_REJECTED,
       'Proposal Requires Revision',
-      `<p>Your proposal requires revision.</p>
-       <p><strong>Feedback:</strong> ${reason}</p>
-       <p><a href="${process.env.FRONTEND_URL}/app/proposals/${proposalId}">View Proposal</a></p>`,
+      `Your proposal requires revision. Feedback: ${reason}.`,
       'Proposal',
       proposalId,
     );
@@ -222,7 +237,11 @@ export class ComprehensiveNotificationsService {
   /**
    * Stage 6: Client Negotiation
    */
-  async notifyNegotiationStarted(negotiationId: string, leadName: string, accountManagerId: string): Promise<void> {
+  async notifyNegotiationStarted(
+    negotiationId: string,
+    leadName: string,
+    accountManagerId: string,
+  ): Promise<void> {
     // Notify Sales Manager
     const salesManagers = await this.usersRepository.find({
       where: { role: UserRole.SALES_MANAGER },
@@ -233,23 +252,25 @@ export class ComprehensiveNotificationsService {
         manager.id,
         NotificationType.NEGOTIATION_STARTED,
         'Negotiation Started',
-        `<p>Negotiation has started for <strong>${leadName}</strong>.</p>
-         <p><a href="${process.env.FRONTEND_URL}/app/negotiations/${negotiationId}">View Negotiation</a></p>`,
+        `Negotiation has started for "${leadName}".`,
         'Negotiation',
         negotiationId,
       );
     }
   }
 
-  async notifyNegotiationUpdated(negotiationId: string, leadName: string, updateType: string, stakeholders: string[]): Promise<void> {
+  async notifyNegotiationUpdated(
+    negotiationId: string,
+    leadName: string,
+    updateType: string,
+    stakeholders: string[],
+  ): Promise<void> {
     for (const userId of stakeholders) {
       await this.notificationsService.createNotification(
         userId,
         NotificationType.NEGOTIATION_UPDATED,
         `Negotiation Update - ${updateType}`,
-        `<p>Negotiation for <strong>${leadName}</strong> has been updated.</p>
-         <p><strong>Update:</strong> ${updateType}</p>
-         <p><a href="${process.env.FRONTEND_URL}/app/negotiations/${negotiationId}">View Negotiation</a></p>`,
+        `Negotiation for "${leadName}" has been updated. Update: ${updateType}.`,
         'Negotiation',
         negotiationId,
       );
@@ -257,9 +278,85 @@ export class ComprehensiveNotificationsService {
   }
 
   /**
+   * Approval Workflow Completion
+   */
+  async notifyApprovalWorkflowCompleted(
+    context: ApprovalContext,
+    entityId: string,
+    leadId: string,
+    creatorId: string,
+    accountManagerId: string,
+  ): Promise<void> {
+    try {
+      // Get entity details
+      const entityType =
+        context === ApprovalContext.PROPOSAL ? 'Proposal' : 'Agreement';
+      const entity =
+        context === ApprovalContext.PROPOSAL
+          ? await this.proposalsRepository.findOne({ where: { id: entityId } })
+          : await this.agreementsRepository.findOne({
+              where: { id: entityId },
+            });
+
+      if (!entity) {
+        this.logger.warn(`Entity not found: ${context} ${entityId}`);
+        return;
+      }
+
+      // Get lead details
+      const lead = await this.leadsRepository.findOne({
+        where: { id: leadId },
+      });
+      const leadName = lead
+        ? lead.name || lead.organization || 'Unknown Lead'
+        : 'Unknown Lead';
+      const entityName =
+        context === ApprovalContext.PROPOSAL
+          ? (entity as any).title ||
+            `Proposal ${(entity as any).proposalNumber}`
+          : (entity as any).title || 'Agreement';
+
+      // Notify creator
+      await this.notificationsService.createNotification(
+        creatorId,
+        NotificationType.APPROVAL_WORKFLOW_COMPLETED,
+        `${entityType} Approved`,
+        `All approvals completed for ${entityType}: ${entityName} (Lead: ${leadName})`,
+        context.toLowerCase(),
+        entityId,
+      );
+
+      // Notify account manager (if different from creator)
+      if (accountManagerId && accountManagerId !== creatorId) {
+        await this.notificationsService.createNotification(
+          accountManagerId,
+          NotificationType.APPROVAL_WORKFLOW_COMPLETED,
+          `${entityType} Approved`,
+          `All approvals completed for ${entityType}: ${entityName} (Lead: ${leadName})`,
+          context.toLowerCase(),
+          entityId,
+        );
+      }
+
+      this.logger.log(
+        `Approval workflow completion notifications sent for ${context} ${entityId}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to send approval workflow completion notifications: ${error.message}`,
+        error.stack,
+      );
+    }
+  }
+
+  /**
    * Stage 7: Work Order & Lead Won
    */
-  async notifyLeadWon(leadId: string, leadName: string, workOrderId: string): Promise<void> {
+  async notifyLeadWon(
+    leadId: string,
+    leadName: string,
+    workOrderId: string,
+  ): Promise<void> {
     const lead = await this.leadsRepository.findOne({
       where: { id: leadId },
       relations: ['createdBy', 'assignedTo'],
@@ -275,9 +372,7 @@ export class ComprehensiveNotificationsService {
         recipientId,
         NotificationType.LEAD_WON,
         '🎉 Congratulations! Lead Won',
-        `<p><strong>Congratulations!</strong> Lead <strong>${leadName}</strong> has been marked as Won.</p>
-         <p>A work order has been created.</p>
-         <p><a href="${process.env.FRONTEND_URL}/app/work-orders/${workOrderId}">View Work Order</a></p>`,
+        `Congratulations! Lead "${leadName}" has been marked as Won. A work order has been created.`,
         'Lead',
         leadId,
       );
@@ -293,8 +388,7 @@ export class ComprehensiveNotificationsService {
         manager.id,
         NotificationType.LEAD_WON,
         'Lead Won - Work Order Created',
-        `<p>Lead <strong>${leadName}</strong> has been successfully converted to Won.</p>
-         <p><a href="${process.env.FRONTEND_URL}/app/work-orders/${workOrderId}">View Work Order</a></p>`,
+        `Lead "${leadName}" has been successfully converted to Won.`,
         'Lead',
         leadId,
       );
@@ -310,23 +404,23 @@ export class ComprehensiveNotificationsService {
         dm.id,
         NotificationType.WORK_ORDER_CREATED,
         'New Work Order - Action Required',
-        `<p>A new work order has been created for <strong>${leadName}</strong>.</p>
-         <p>Please review and begin planning for delivery.</p>
-         <p><a href="${process.env.FRONTEND_URL}/app/work-orders/${workOrderId}">View Work Order</a></p>`,
+        `A new work order has been created for "${leadName}". Please review and begin planning for delivery.`,
         'WorkOrder',
         workOrderId,
       );
     }
   }
 
-  async notifyWorkOrderAssigned(workOrderId: string, assignedToId: string, workOrderTitle: string): Promise<void> {
+  async notifyWorkOrderAssigned(
+    workOrderId: string,
+    assignedToId: string,
+    workOrderTitle: string,
+  ): Promise<void> {
     await this.notificationsService.createNotification(
       assignedToId,
       NotificationType.WORK_ORDER_ASSIGNED,
       'Work Order Assigned to You',
-      `<p>Work order <strong>${workOrderTitle}</strong> has been assigned to you.</p>
-       <p>Please review the requirements and begin planning.</p>
-       <p><a href="${process.env.FRONTEND_URL}/app/work-orders/${workOrderId}">View Work Order</a></p>`,
+      `Work order "${workOrderTitle}" has been assigned to you. Please review the requirements and begin planning.`,
       'WorkOrder',
       workOrderId,
     );
@@ -337,7 +431,10 @@ export class ComprehensiveNotificationsService {
   /**
    * Stage 8: Agreement Drafting
    */
-  async notifyAgreementCreated(agreementId: string, leadName: string): Promise<void> {
+  async notifyAgreementCreated(
+    agreementId: string,
+    leadName: string,
+  ): Promise<void> {
     // Notify Legal Team
     const legalTeam = await this.usersRepository.find({
       where: { role: UserRole.LEGAL },
@@ -348,9 +445,7 @@ export class ComprehensiveNotificationsService {
         user.id,
         NotificationType.LEGAL_REVIEW_REQUIRED,
         'New Agreement - Legal Review Required',
-        `<p>A new agreement for <strong>${leadName}</strong> has been created.</p>
-         <p>Please draft or review the agreement and ensure legal compliance.</p>
-         <p><a href="${process.env.FRONTEND_URL}/app/agreements/${agreementId}">Review Agreement</a></p>`,
+        `A new agreement for "${leadName}" has been created. Please draft or review the agreement and ensure legal compliance.`,
         'Agreement',
         agreementId,
       );
@@ -360,15 +455,40 @@ export class ComprehensiveNotificationsService {
   /**
    * Agreement Stage Change Notifications
    */
-  async notifyAgreementStageChange(agreementId: string, newStage: string, agreement: any): Promise<void> {
+  async notifyAgreementStageChange(
+    agreementId: string,
+    newStage: string,
+    agreement: any,
+  ): Promise<void> {
     const stageNotificationMap = {
-      'Legal Review': { role: UserRole.LEGAL, type: NotificationType.LEGAL_REVIEW_REQUIRED },
-      'Delivery Review': { role: UserRole.DELIVERY_MANAGER, type: NotificationType.DELIVERY_REVIEW_REQUIRED },
-      'Procurement Review': { role: UserRole.PROCUREMENT, type: NotificationType.PROCUREMENT_REVIEW_REQUIRED },
-      'Finance Review': { role: UserRole.FINANCE, type: NotificationType.FINANCE_REVIEW_REQUIRED },
-      'Client Review': { role: null, type: NotificationType.CLIENT_REVIEW_REQUIRED }, // Account Manager
-      'CEO Approval': { role: UserRole.CEO, type: NotificationType.CEO_APPROVAL_PENDING },
-      'ULCCS Approval': { role: UserRole.ULCCS_APPROVER, type: NotificationType.ULCCS_APPROVAL_PENDING },
+      'Legal Review': {
+        role: UserRole.LEGAL,
+        type: NotificationType.LEGAL_REVIEW_REQUIRED,
+      },
+      'Delivery Review': {
+        role: UserRole.DELIVERY_MANAGER,
+        type: NotificationType.DELIVERY_REVIEW_REQUIRED,
+      },
+      'Procurement Review': {
+        role: UserRole.PROCUREMENT,
+        type: NotificationType.PROCUREMENT_REVIEW_REQUIRED,
+      },
+      'Finance Review': {
+        role: UserRole.FINANCE,
+        type: NotificationType.FINANCE_REVIEW_REQUIRED,
+      },
+      'Client Review': {
+        role: null,
+        type: NotificationType.CLIENT_REVIEW_REQUIRED,
+      }, // Account Manager
+      'CEO Approval': {
+        role: UserRole.CEO,
+        type: NotificationType.CEO_APPROVAL_PENDING,
+      },
+      'ULCCS Approval': {
+        role: UserRole.ULCCS_APPROVER,
+        type: NotificationType.ULCCS_APPROVAL_PENDING,
+      },
     };
 
     const config = stageNotificationMap[newStage];
@@ -405,10 +525,7 @@ export class ComprehensiveNotificationsService {
         recipient.id,
         config.type,
         `Agreement Review Required - ${newStage}`,
-        `<p>Agreement for <strong>${agreement.title}</strong> is now in <strong>${newStage}</strong> stage.</p>
-         <p>Please ${actionMessages[newStage] || 'take appropriate action'}.</p>
-         <p><strong>Contract Value:</strong> ₹${agreement.contractValue?.toLocaleString('en-IN') || 'N/A'}</p>
-         <p><a href="${process.env.FRONTEND_URL}/app/agreements/${agreementId}">Review Agreement</a></p>`,
+        `Agreement for "${agreement.title}" is now in ${newStage} stage. Please ${actionMessages[newStage] || 'take appropriate action'}. Contract Value: ₹${agreement.contractValue?.toLocaleString('en-IN') || 'N/A'}`,
         'Agreement',
         agreementId,
       );
@@ -418,7 +535,13 @@ export class ComprehensiveNotificationsService {
   /**
    * Stage completion notifications
    */
-  async notifyStageCompleted(agreementId: string, completedStage: string, completedBy: string, nextStage: string, accountManagerId: string): Promise<void> {
+  async notifyStageCompleted(
+    agreementId: string,
+    completedStage: string,
+    completedBy: string,
+    nextStage: string,
+    accountManagerId: string,
+  ): Promise<void> {
     const stageTypeMap = {
       'Legal Review': NotificationType.LEGAL_REVIEW_COMPLETED,
       'Delivery Review': NotificationType.DELIVERY_REVIEW_COMPLETED,
@@ -428,15 +551,14 @@ export class ComprehensiveNotificationsService {
       'ULCCS Approval': NotificationType.ULCCS_APPROVAL_COMPLETED,
     };
 
-    const notificationType = stageTypeMap[completedStage] || NotificationType.AGREEMENT_STAGE_CHANGE;
+    const notificationType =
+      stageTypeMap[completedStage] || NotificationType.AGREEMENT_STAGE_CHANGE;
 
     await this.notificationsService.createNotification(
       accountManagerId,
       notificationType,
       `${completedStage} Completed`,
-      `<p>${completedStage} for your agreement has been completed.</p>
-       <p><strong>Next Stage:</strong> ${nextStage}</p>
-       <p><a href="${process.env.FRONTEND_URL}/app/agreements/${agreementId}">View Agreement</a></p>`,
+      `${completedStage} for your agreement has been completed. Next Stage: ${nextStage}`,
       'Agreement',
       agreementId,
     );
@@ -445,7 +567,11 @@ export class ComprehensiveNotificationsService {
   /**
    * Stage 9: CEO & ULCCS Approvals
    */
-  async notifyCEOApprovalRequired(agreementId: string, agreementTitle: string, contractValue: number): Promise<void> {
+  async notifyCEOApprovalRequired(
+    agreementId: string,
+    agreementTitle: string,
+    contractValue: number,
+  ): Promise<void> {
     const ceos = await this.usersRepository.find({
       where: { role: UserRole.CEO },
     });
@@ -455,17 +581,17 @@ export class ComprehensiveNotificationsService {
         ceo.id,
         NotificationType.CEO_APPROVAL_PENDING,
         'CEO Approval Required - High Value Agreement',
-        `<p>Agreement <strong>${agreementTitle}</strong> requires your approval.</p>
-         <p><strong>Contract Value:</strong> ₹${contractValue?.toLocaleString('en-IN')}</p>
-         <p>Please review strategic importance, risk exposure, and commercial value.</p>
-         <p><a href="${process.env.FRONTEND_URL}/app/agreements/${agreementId}">Review & Approve</a></p>`,
+        `Agreement "${agreementTitle}" requires your approval. Contract Value: ₹${contractValue?.toLocaleString('en-IN')}. Please review strategic importance, risk exposure, and commercial value.`,
         'Agreement',
         agreementId,
       );
     }
   }
 
-  async notifyULCCSApprovalRequired(agreementId: string, agreementTitle: string): Promise<void> {
+  async notifyULCCSApprovalRequired(
+    agreementId: string,
+    agreementTitle: string,
+  ): Promise<void> {
     const ulccsApprovers = await this.usersRepository.find({
       where: { role: UserRole.ULCCS_APPROVER },
     });
@@ -475,9 +601,7 @@ export class ComprehensiveNotificationsService {
         approver.id,
         NotificationType.ULCCS_APPROVAL_PENDING,
         'ULCCS Approval Required',
-        `<p>ULCCS-related agreement <strong>${agreementTitle}</strong> requires your approval.</p>
-         <p>Please review and provide approval.</p>
-         <p><a href="${process.env.FRONTEND_URL}/app/agreements/${agreementId}">Review & Approve</a></p>`,
+        `ULCCS-related agreement "${agreementTitle}" requires your approval. Please review and provide approval.`,
         'Agreement',
         agreementId,
       );
@@ -487,42 +611,47 @@ export class ComprehensiveNotificationsService {
   /**
    * Stage 10: Agreement Signing
    */
-  async notifyAgreementReadyForSigning(agreementId: string, agreementTitle: string, accountManagerId: string): Promise<void> {
+  async notifyAgreementReadyForSigning(
+    agreementId: string,
+    agreementTitle: string,
+    accountManagerId: string,
+  ): Promise<void> {
     await this.notificationsService.createNotification(
       accountManagerId,
       NotificationType.AGREEMENT_READY_FOR_SIGNING,
       'Agreement Ready for Signing',
-      `<p>Agreement <strong>${agreementTitle}</strong> has received all approvals.</p>
-       <p>You can now proceed with signing and coordinate with the client for their signature.</p>
-       <p><a href="${process.env.FRONTEND_URL}/app/agreements/${agreementId}">View Agreement</a></p>`,
+      `Agreement "${agreementTitle}" has received all approvals. You can now proceed with signing and coordinate with the client for their signature.`,
       'Agreement',
       agreementId,
     );
   }
 
-  async notifyCompanySigned(agreementId: string, agreementTitle: string, accountManagerId: string): Promise<void> {
+  async notifyCompanySigned(
+    agreementId: string,
+    agreementTitle: string,
+    accountManagerId: string,
+  ): Promise<void> {
     await this.notificationsService.createNotification(
       accountManagerId,
       NotificationType.COMPANY_SIGNED,
       'Company Signature Completed',
-      `<p>Company has signed the agreement <strong>${agreementTitle}</strong>.</p>
-       <p>Please coordinate with client for their signature to complete the agreement.</p>
-       <p><a href="${process.env.FRONTEND_URL}/app/agreements/${agreementId}">View Agreement</a></p>`,
+      `Company has signed the agreement "${agreementTitle}". Please coordinate with client for their signature to complete the agreement.`,
       'Agreement',
       agreementId,
     );
   }
 
-  async notifyAgreementFullyExecuted(agreementId: string, agreementTitle: string, stakeholders: string[]): Promise<void> {
+  async notifyAgreementFullyExecuted(
+    agreementId: string,
+    agreementTitle: string,
+    stakeholders: string[],
+  ): Promise<void> {
     for (const userId of stakeholders) {
       await this.notificationsService.createNotification(
         userId,
         NotificationType.AGREEMENT_FULLY_EXECUTED,
         '✅ Agreement Fully Executed',
-        `<p><strong>Success!</strong> Agreement <strong>${agreementTitle}</strong> has been fully executed.</p>
-         <p>Both company and client signatures are complete.</p>
-         <p>You can now proceed with project kickoff.</p>
-         <p><a href="${process.env.FRONTEND_URL}/app/agreements/${agreementId}">View Agreement</a></p>`,
+        `Success! Agreement "${agreementTitle}" has been fully executed. Both company and client signatures are complete. You can now proceed with project kickoff.`,
         'Agreement',
         agreementId,
       );
@@ -532,32 +661,84 @@ export class ComprehensiveNotificationsService {
   /**
    * Activity Notifications
    */
-  async notifyActivityAdded(entityType: string, entityId: string, activityType: string, addedBy: string, stakeholders: string[]): Promise<void> {
-    const activityUser = await this.usersRepository.findOne({ where: { id: addedBy } });
-    
-    for (const userId of stakeholders.filter(id => id !== addedBy)) {
+  async notifyActivityAdded(
+    entityType: string,
+    entityId: string,
+    activityType: string,
+    addedBy: string,
+    stakeholders: string[],
+  ): Promise<void> {
+    let activityUser: User | null = null;
+    if (addedBy && addedBy.trim() !== '') {
+      activityUser = await this.usersRepository.findOne({
+        where: { id: addedBy },
+      });
+    }
+
+    for (const userId of stakeholders.filter((id) => id !== addedBy)) {
       await this.notificationsService.createNotification(
         userId,
         NotificationType.ACTIVITY_ADDED,
         `New ${activityType} Activity`,
-        `<p>${activityUser?.name || 'Someone'} added a new ${activityType} activity.</p>
-         <p><a href="${process.env.FRONTEND_URL}/app/${entityType.toLowerCase()}s/${entityId}">View Details</a></p>`,
+        `${activityUser?.name || 'Someone'} added a new ${activityType} activity.`,
         entityType,
         entityId,
       );
     }
   }
 
-  async notifyDocumentUploaded(entityType: string, entityId: string, documentName: string, uploadedBy: string, stakeholders: string[]): Promise<void> {
-    const uploader = await this.usersRepository.findOne({ where: { id: uploadedBy } });
-    
-    for (const userId of stakeholders.filter(id => id !== uploadedBy)) {
+  /**
+   * Activity Assignment Notifications
+   */
+  async notifyActivityAssigned(
+    activityId: string,
+    activityTitle: string,
+    activityType: string,
+    assignedToId: string,
+    assignedBy: string,
+    entityType: string,
+    entityId: string,
+    entityName: string,
+    scheduledDate?: Date,
+  ): Promise<void> {
+    let assignedByUser: User | null = null;
+    if (assignedBy && assignedBy.trim() !== '') {
+      assignedByUser = await this.usersRepository.findOne({
+        where: { id: assignedBy },
+      });
+    }
+
+    const scheduledText = scheduledDate
+      ? ` (Due: ${scheduledDate.toLocaleDateString()})`
+      : '';
+
+    await this.notificationsService.createNotification(
+      assignedToId,
+      NotificationType.ACTIVITY_ASSIGNED,
+      'Activity Assigned to You',
+      `You have been assigned: "${activityTitle}" (${activityType}) for ${entityType.toLowerCase()} "${entityName}"${scheduledText}. Assigned by ${assignedByUser?.name || 'Someone'}.`,
+      entityType,
+      entityId,
+    );
+  }
+
+  async notifyDocumentUploaded(
+    entityType: string,
+    entityId: string,
+    documentName: string,
+    uploadedBy: string,
+    stakeholders: string[],
+  ): Promise<void> {
+    const uploader = await this.usersRepository.findOne({
+      where: { id: uploadedBy },
+    });
+
+    for (const userId of stakeholders.filter((id) => id !== uploadedBy)) {
       await this.notificationsService.createNotification(
         userId,
         NotificationType.DOCUMENT_UPLOADED,
         'New Document Uploaded',
-        `<p>${uploader?.name || 'Someone'} uploaded a document: <strong>${documentName}</strong></p>
-         <p><a href="${process.env.FRONTEND_URL}/app/${entityType.toLowerCase()}s/${entityId}">View Details</a></p>`,
+        `${uploader?.name || 'Someone'} uploaded a document: "${documentName}"`,
         entityType,
         entityId,
       );
@@ -567,7 +748,10 @@ export class ComprehensiveNotificationsService {
   /**
    * Get all stakeholders for an entity
    */
-  private async getEntityStakeholders(entityType: string, entityId: string): Promise<string[]> {
+  async getEntityStakeholders(
+    entityType: string,
+    entityId: string,
+  ): Promise<string[]> {
     const stakeholders: string[] = [];
 
     if (entityType === 'Lead') {
@@ -584,8 +768,10 @@ export class ComprehensiveNotificationsService {
         relations: ['lead'],
       });
       if (agreement?.lead) {
-        if (agreement.lead.createdById) stakeholders.push(agreement.lead.createdById);
-        if (agreement.lead.assignedToId) stakeholders.push(agreement.lead.assignedToId);
+        if (agreement.lead.createdById)
+          stakeholders.push(agreement.lead.createdById);
+        if (agreement.lead.assignedToId)
+          stakeholders.push(agreement.lead.assignedToId);
       }
     }
 
