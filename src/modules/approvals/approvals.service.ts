@@ -252,13 +252,14 @@ export class ApprovalsService {
       if (savedApproval.context === ApprovalContext.PROPOSAL) {
         await this.proposalsService.checkApprovalStatus(savedApproval.entityId);
       } else if (savedApproval.context === ApprovalContext.AGREEMENT) {
-        // For agreements, we need to call the sendForApproval method which has the completion logic
-        // But since we're already in the approval response, let's call it with a dummy user
-        // Actually, let me check if agreements has a similar method
-        await this.agreementsService.sendForApproval(
+        // For agreements, call the method that handles approval completion
+        await this.agreementsService.updateStageAfterApproval(
           savedApproval.entityId,
           userId,
         );
+      } else if (savedApproval.context === ApprovalContext.NEGOTIATION_REVISION) {
+        // For negotiation revisions, mark as approved (no further action needed)
+        // TODO: Implement negotiation revision completion logic if needed
       }
     }
 

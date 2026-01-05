@@ -1263,9 +1263,9 @@ export class AgreementsService {
     );
 
     if (allApproved) {
-      // All approvals completed - move to Pending Signature
+      // All approvals completed - mark as signed
       const oldStage = agreement.stage;
-      agreement.stage = AgreementStage.PENDING_SIGNATURE;
+      agreement.stage = AgreementStage.SIGNED;
       agreement.approvalInProgress = false;
       await this.agreementsRepository.save(agreement);
 
@@ -1281,8 +1281,8 @@ export class AgreementsService {
       await this.createStageHistory(
         agreement.id,
         oldStage,
-        AgreementStage.PENDING_SIGNATURE,
-        'All approvals completed',
+        AgreementStage.SIGNED,
+        'All approvals completed - agreement signed',
         userId,
       );
     }
